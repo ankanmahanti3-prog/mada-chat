@@ -11,10 +11,10 @@ const io = new Server(server);
 
 const SECRET_KEY = 'mada_secret_key_change_in_production';
 
-// Database setup
-const db = new sqlite3.Database('./chat.db', (err) => {
+// Use in-memory SQLite database for reliable execution on cloud containers
+const db = new sqlite3.Database(':memory:', (err) => {
   if (err) console.error('Database connection error:', err);
-  else console.log('Connected to SQLite database.');
+  else console.log('Connected to in-memory SQLite database.');
 });
 
 db.serialize(() => {
@@ -33,7 +33,7 @@ db.serialize(() => {
 
 app.use(express.json());
 
-// Serve HTML directly on the root path
+// Serve HTML directly on root
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -103,24 +103,28 @@ app.get('/', (req, res) => {
     if (!username || !password) return alert('Please enter both username and password.');
 
     const endpoint = isLogin ? '/api/login' : '/api/register';
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
 
-    const data = await res.json();
-    if (res.ok) {
-      if (isLogin) {
-        currentUser = data.username;
-        localStorage.setItem('mada_user', currentUser);
-        showChat();
+      const data = await res.json();
+      if (res.ok) {
+        if (isLogin) {
+          currentUser = data.username;
+          localStorage.setItem('mada_user', currentUser);
+          showChat();
+        } else {
+          alert('Registered successfully! Switching to Login...');
+          toggleAuthMode();
+        }
       } else {
-        alert('Registered successfully! Now log in.');
-        toggleAuthMode();
+        alert(data.error || 'Authentication failed');
       }
-    } else {
-      alert(data.error || 'Authentication failed');
+    } catch (err) {
+      alert('Network error connecting to server.');
     }
   }
 
