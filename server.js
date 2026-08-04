@@ -4,7 +4,6 @@ const { Server } = require('socket.io');
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -34,11 +33,141 @@ db.serialize(() => {
 
 app.use(express.json());
 
-// Serving static files (index.html) directly
-app.use(express.static(__dirname));
-
+// Serve HTML directly on the root path
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mada Chat</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #121212; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    .container { width: 90%; max-width: 450px; background: #1e1e1e; border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+    h2 { text-align: center; margin-bottom: 20px; color: #bb86fc; }
+    input { width: 100%; padding: 12px; margin: 8px 0; background: #2e2e2e; border: 1px solid #3e3e3e; color: #fff; border-radius: 6px; outline: none; }
+    button { width: 100%; padding: 12px; margin-top: 10px; background: #bb86fc; border: none; color: #000; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    button:hover { background: #9965f4; }
+    .switch-btn { background: transparent; color: #bb86fc; text-align: center; margin-top: 12px; font-size: 14px; cursor: pointer; text-decoration: underline; }
+    #chat-screen { display: none; height: 500px; flex-direction: column; }
+    #messages { flex: 1; overflow-y: auto; padding: 10px; background: #121212; border-radius: 6px; margin-bottom: 10px; }
+    .msg { margin-bottom: 10px; padding: 8px 12px; background: #2e2e2e; border-radius: 6px; max-width: 80%; }
+    .msg .author { font-size: 12px; color: #bb86fc; font-weight: bold; margin-bottom: 2px; }
+    #chat-form { display: flex; gap: 8px; }
+    #chat-form input { margin: 0; flex: 1; }
+    #chat-form button { margin: 0; width: auto; padding: 0 20px; }
+  </style>
+</head>
+<body>
+
+<div class="container" id="auth-screen">
+  <h2 id="auth-title">Login to Mada</h2>
+  <input type="text" id="username" placeholder="Username" autocomplete="off">
+  <input type="password" id="password" placeholder="Password">
+  <button id="auth-btn" onclick="handleAuth()">Login</button>
+  <div class="switch-btn" onclick="toggleAuthMode()" id="switch-text">Don't have an account? Register</div>
+</div>
+
+<div class="container" id="chat-screen">
+  <h2>Mada Live Chat</h2>
+  <div id="messages"></div>
+  <form id="chat-form" onsubmit="sendMessage(event)">
+    <input type="text" id="msg-input" placeholder="Type a message..." autocomplete="off">
+    <button type="submit">Send</button>
+  </form>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  let isLogin = true;
+  let currentUser = localStorage.getItem('mada_user') || null;
+  const socket = io();
+
+  if (currentUser) {
+    showChat();
+  }
+
+  function toggleAuthMode() {
+    isLogin = !isLogin;
+    document.getElementById('auth-title').innerText = isLogin ? 'Login to Mada' : 'Register for Mada';
+    document.getElementById('auth-btn').innerText = isLogin ? 'Login' : 'Register';
+    document.getElementById('switch-text').innerText = isLogin ? "Don't have an account? Register" : "Already have an account? Login";
+  }
+
+  async function handleAuth() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+
+    if (!username || !password) return alert('Please enter both username and password.');
+
+    const endpoint = isLogin ? '/api/login' : '/api/register';
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      if (isLogin) {
+        currentUser = data.username;
+        localStorage.setItem('mada_user', currentUser);
+        showChat();
+      } else {
+        alert('Registered successfully! Now log in.');
+        toggleAuthMode();
+      }
+    } else {
+      alert(data.error || 'Authentication failed');
+    }
+  }
+
+  function showChat() {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('chat-screen').style.display = 'flex';
+  }
+
+  socket.on('chat history', (history) => {
+    const list = document.getElementById('messages');
+    list.innerHTML = '';
+    history.forEach(appendMessage);
+    scrollToBottom();
+  });
+
+  socket.on('chat message', (msg) => {
+    appendMessage(msg);
+    scrollToBottom();
+  });
+
+  function appendMessage(msg) {
+    const list = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg';
+    div.innerHTML = \`<div class="author">\${msg.username}</div><div>\${msg.message}</div>\`;
+    list.appendChild(div);
+  }
+
+  function sendMessage(e) {
+    e.preventDefault();
+    const input = document.getElementById('msg-input');
+    const text = input.value.trim();
+    if (text && currentUser) {
+      socket.emit('chat message', { username: currentUser, message: text });
+      input.value = '';
+    }
+  }
+
+  function scrollToBottom() {
+    const list = document.getElementById('messages');
+    list.scrollTop = list.scrollHeight;
+  }
+</script>
+
+</body>
+</html>
+  `);
 });
 
 // Authentication Routes
@@ -72,7 +201,6 @@ app.post('/api/login', (req, res) => {
 
 // Real-time Chat Sockets
 io.on('connection', (socket) => {
-  // Send chat history to new connection
   db.all('SELECT username, message, timestamp FROM messages ORDER BY id ASC LIMIT 50', [], (err, rows) => {
     if (!err) socket.emit('chat history', rows);
   });
