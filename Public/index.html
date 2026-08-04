@@ -1,641 +1,136 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mada - Real-Time Communications</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #0b0f19; color: #f1f5f9; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        
-        /* Auth Screen Modal */
-        #auth-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #0b0f19; z-index: 2000; display: flex; justify-content: center; align-items: center;
-        }
-        .auth-card {
-            background: #131b2e; border: 1px solid #1e293b; padding: 32px; border-radius: 16px;
-            width: 100%; max-width: 360px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 16px;
-        }
-        .auth-card h2 { text-align: center; background: linear-gradient(135deg, #a855f7, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .auth-card input { padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; outline: none; font-size: 0.95rem; }
-        .auth-btn { background: linear-gradient(135deg, #7c3aed, #6366f1); border: none; color: white; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-        .switch-mode { text-align: center; font-size: 0.8rem; color: #94a3b8; cursor: pointer; }
-        .switch-mode:hover { color: #38bdf8; }
-        .auth-error { color: #f87171; font-size: 0.8rem; text-align: center; display: none; }
-
-        /* Main App Container */
-        #app-container {
-            width: 100%; max-width: 850px; height: 90vh; background: #131b2e; border-radius: 16px;
-            display: flex; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border: 1px solid #1e293b; position: relative;
-        }
-
-        #sidebar { width: 240px; background: #0f172a; border-right: 1px solid #1e293b; display: flex; flex-direction: column; padding: 16px 12px; gap: 16px; flex-shrink: 0; }
-        .brand { font-size: 1.2rem; font-weight: 700; background: linear-gradient(135deg, #a855f7, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 0 8px; }
-        .user-profile-badge { font-size: 0.85rem; color: #38bdf8; padding: 0 8px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
-        .logout-link { font-size: 0.7rem; color: #ef4444; cursor: pointer; }
-
-        .section-title { font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; letter-spacing: 0.5px; padding: 0 8px; }
-        #rooms-list { display: flex; flex-direction: column; gap: 4px; flex: 1; overflow-y: auto; }
-        .room-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; color: #94a3b8; }
-        .room-item.active { background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; font-weight: 600; }
-        .room-badge { font-size: 0.7rem; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 10px; }
-
-        .add-room-box { display: flex; gap: 6px; }
-        .add-room-box input { flex: 1; padding: 8px 10px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: white; outline: none; font-size: 0.8rem; }
-        .add-room-btn { background: #a855f7; border: none; color: white; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
-
-        #main-chat { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #131b2e; position: relative; }
-        header { padding: 16px 20px; background: #0f172a; border-bottom: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; }
-        .room-title { font-size: 1.1rem; font-weight: 700; color: #f1f5f9; }
-        .status-badge { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #94a3b8; }
-        .dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981; }
-
-        #chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; background: radial-gradient(circle at top, #1e1b4b15, transparent); }
-
-        .msg-wrapper { display: flex; flex-direction: column; max-width: 75%; position: relative; }
-        .msg-wrapper.mine { align-self: flex-end; align-items: flex-end; }
-        .msg-wrapper.others { align-self: flex-start; align-items: flex-start; }
-
-        .sender-name { font-size: 0.75rem; color: #a855f7; margin-bottom: 3px; font-weight: 600; padding: 0 4px; }
-        .bubble { padding: 10px 14px; border-radius: 14px; font-size: 0.95rem; line-height: 1.4; word-break: break-word; position: relative; }
-        .mine .bubble { background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; border-bottom-right-radius: 2px; }
-        .others .bubble { background: #1e293b; color: #e2e8f0; border-bottom-left-radius: 2px; border: 1px solid #334155; }
-        .deleted-bubble { font-style: italic; opacity: 0.6; background: #1e293b !important; color: #94a3b8 !important; }
-
-        .timestamp { font-size: 0.65rem; opacity: 0.7; margin-top: 4px; text-align: right; display: block; }
-        .reply-quote { background: rgba(0,0,0,0.25); border-left: 3px solid #06b6d4; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 6px; }
-
-        /* Seamless Hover Actions Bar */
-        .reaction-trigger {
-            display: none; position: absolute; top: -28px; background: #0f172a; border: 1px solid #334155;
-            border-radius: 18px; padding: 2px 8px; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 10; align-items: center;
-        }
-        .msg-wrapper:hover .reaction-trigger { display: flex; }
-        .mine .reaction-trigger { right: 0; }
-        .others .reaction-trigger { left: 0; }
-        .react-btn { background: none; border: none; font-size: 0.9rem; cursor: pointer; }
-        .action-link { font-size: 0.75rem; color: #94a3b8; cursor: pointer; margin-left: 4px; }
-
-        /* Seamless Inline Edit Container */
-        .inline-edit-box { display: flex; flex-direction: column; gap: 6px; width: 100%; min-width: 220px; }
-        .inline-edit-input { padding: 8px 10px; border-radius: 8px; border: 1px solid #a855f7; background: #0f172a; color: white; outline: none; font-size: 0.9rem; }
-        .inline-edit-actions { display: flex; justify-content: flex-end; gap: 6px; }
-        .edit-save-btn { background: #10b981; border: none; color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
-        .edit-cancel-btn { background: #64748b; border: none; color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; }
-
-        /* Custom Delete Modal */
-        #confirm-modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(3px); z-index: 3000;
-            justify-content: center; align-items: center;
-        }
-        .confirm-box {
-            background: #131b2e; border: 1px solid #334155; border-radius: 12px; padding: 20px; width: 280px; text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 14px;
-        }
-        .confirm-btn-danger { background: #ef4444; border: none; color: white; padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-        .confirm-btn-cancel { background: #334155; border: none; color: white; padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-
-        .reaction-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
-        .badge-pill { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 2px 8px; font-size: 0.75rem; cursor: pointer; }
-
-        #emoji-picker {
-            display: none; position: absolute; bottom: 70px; right: 80px; background: #0f172a; border: 1px solid #334155;
-            border-radius: 12px; padding: 10px; grid-template-columns: repeat(6, 1fr); gap: 8px; width: 220px; z-index: 100;
-        }
-        .emoji-item { font-size: 1.2rem; text-align: center; cursor: pointer; padding: 4px; }
-
-        #active-reply-banner { display: none; background: #0f172a; border-top: 1px solid #1e293b; border-left: 4px solid #a855f7; padding: 8px 16px; font-size: 0.8rem; justify-content: space-between; color: #cbd5e1; }
-        .cancel-reply { cursor: pointer; color: #ef4444; font-weight: bold; }
-
-        .chat-img { max-width: 100%; max-height: 220px; border-radius: 8px; cursor: pointer; margin-top: 4px; display: block; }
-        .file-card { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px; text-decoration: none; color: #38bdf8; font-weight: 600; }
-
-        #typing-indicator { padding: 6px 20px; font-size: 0.75rem; color: #38bdf8; font-style: italic; display: none; background: #0f172a; border-top: 1px solid #1e293b; }
-        #rec-banner { display: none; background: #450a0a; color: #fca5a5; padding: 6px 12px; font-size: 0.8rem; text-align: center; border-top: 1px solid #991b1b; font-weight: 600; }
-
-        #controls { padding: 12px 16px; background: #0f172a; border-top: 1px solid #1e293b; display: flex; gap: 8px; align-items: center; }
-        input[type="text"].chat-input { flex: 1; padding: 10px 14px; border-radius: 24px; border: 1px solid #334155; background: #1e293b; color: white; outline: none; font-size: 0.95rem; }
-        
-        .icon-btn { background: #1e293b; border: 1px solid #334155; color: #f1f5f9; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
-        .action-btn { background: linear-gradient(135deg, #7c3aed, #6366f1); border: none; color: white; padding: 10px 16px; border-radius: 24px; font-weight: 600; cursor: pointer; }
-        .mic-btn { background: #ef4444; border: none; color: white; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex-shrink: 0; }
-        .mic-btn.recording { animation: pulse 1.2s infinite; background: #dc2626; }
-
-        #image-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; }
-        #modal-img { max-width: 90%; max-height: 80vh; border-radius: 12px; }
-
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
-        audio { max-width: 210px; height: 36px; border-radius: 18px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mada Chat</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #121212; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    
+    .container { width: 90%; max-width: 450px; background: #1e1e1e; border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+    h2 { text-align: center; margin-bottom: 20px; color: #bb86fc; }
+    
+    input { width: 100%; padding: 12px; margin: 8px 0; background: #2e2e2e; border: 1px solid #3e3e3e; color: #fff; border-radius: 6px; outline: none; }
+    button { width: 100%; padding: 12px; margin-top: 10px; background: #bb86fc; border: none; color: #000; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    button:hover { background: #9965f4; }
+    
+    .switch-btn { background: transparent; color: #bb86fc; text-align: center; margin-top: 12px; font-size: 14px; cursor: pointer; text-decoration: underline; }
+    
+    #chat-screen { display: none; height: 500px; flex-direction: column; }
+    #messages { flex: 1; overflow-y: auto; padding: 10px; background: #121212; border-radius: 6px; margin-bottom: 10px; }
+    .msg { margin-bottom: 10px; padding: 8px 12px; background: #2e2e2e; border-radius: 6px; max-width: 80%; }
+    .msg .author { font-size: 12px; color: #bb86fc; font-weight: bold; margin-bottom: 2px; }
+    
+    #chat-form { display: flex; gap: 8px; }
+    #chat-form input { margin: 0; flex: 1; }
+    #chat-form button { margin: 0; width: auto; padding: 0 20px; }
+  </style>
 </head>
 <body>
 
-<div id="auth-overlay">
-    <div class="auth-card">
-        <h2>⚡ Mada</h2>
-        <div id="auth-error" class="auth-error"></div>
-        <input type="text" id="usernameInput" placeholder="Username">
-        <input type="password" id="passwordInput" placeholder="Password">
-        <button id="authSubmitBtn" class="auth-btn" onclick="submitAuth()">Login</button>
-        <div id="switchAuthMode" class="switch-mode" onclick="toggleAuthMode()">Need an account? Sign Up</div>
-    </div>
+<div class="container" id="auth-screen">
+  <h2 id="auth-title">Login to Mada</h2>
+  <input type="text" id="username" placeholder="Username" autocomplete="off">
+  <input type="password" id="password" placeholder="Password">
+  <button id="auth-btn" onclick="handleAuth()">Login</button>
+  <div class="switch-btn" onclick="toggleAuthMode()" id="switch-text">Don't have an account? Register</div>
 </div>
 
-<div id="app-container">
-    <div id="sidebar">
-        <div class="brand">⚡ Mada</div>
-        <div class="user-profile-badge">
-            <span id="display-user-name">User</span>
-            <span class="logout-link" onclick="logout()">Logout</span>
-        </div>
-        <div class="section-title">Rooms</div>
-        <div id="rooms-list"></div>
-        <div class="add-room-box">
-            <input type="text" id="newRoomInput" placeholder="New room..." onkeydown="if(event.key==='Enter') createRoom()">
-            <button class="add-room-btn" onclick="createRoom()">+</button>
-        </div>
-    </div>
-
-    <div id="main-chat">
-        header>
-            <div class="room-title" id="current-room-title"># general</div>
-            <div class="status-badge"><div class="dot"></div> <span id="user-count">1 Active</span></div>
-        </header>
-
-        <div id="chat-box"></div>
-        <div id="typing-indicator"><span id="typing-user">Someone</span> is typing...</div>
-        <div id="rec-banner">🎙️ Recording... <span id="timer">00:00</span></div>
-
-        <div id="active-reply-banner">
-            <div>Replying to <b id="reply-user">User</b>: <span id="reply-text-preview">...</span></div>
-            <span class="cancel-reply" onclick="cancelReply()">✕</span>
-        </div>
-
-        <div id="emoji-picker">
-            <span class="emoji-item" onclick="insertEmoji('😀')">😀</span>
-            <span class="emoji-item" onclick="insertEmoji('😂')">😂</span>
-            <span class="emoji-item" onclick="insertEmoji('🔥')">🔥</span>
-            <span class="emoji-item" onclick="insertEmoji('❤️')">❤️</span>
-            <span class="emoji-item" onclick="insertEmoji('👍')">👍</span>
-            <span class="emoji-item" onclick="insertEmoji('🎉')">🎉</span>
-        </div>
-
-        <div id="controls">
-            <input type="file" id="fileInput" style="display:none;" onchange="sendFile(this)">
-            <button class="icon-btn" title="Attach file" onclick="document.getElementById('fileInput').click()">📎</button>
-            <button class="icon-btn" title="Emoji Picker" onclick="toggleEmojiPicker()">😀</button>
-            
-            <input type="text" id="messageInput" class="chat-input" placeholder="Type a message..." oninput="handleTyping()" onkeydown="if(event.key==='Enter') sendText()">
-            <button class="action-btn" onclick="sendText()">Send</button>
-            <button id="micBtn" class="mic-btn" onclick="toggleRecord()">🎤</button>
-        </div>
-    </div>
-</div>
-
-<div id="confirm-modal">
-    <div class="confirm-box">
-        <div style="font-weight: 600;">Delete Message?</div>
-        <div style="font-size: 0.8rem; color: #94a3b8;">This will remove the message for everyone in this room.</div>
-        <div style="display: flex; justify-content: center; gap: 10px;">
-            <button class="confirm-btn-cancel" onclick="closeDeleteModal()">Cancel</button>
-            <button class="confirm-btn-danger" onclick="confirmDeleteExec()">Delete</button>
-        </div>
-    </div>
-</div>
-
-<div id="image-modal" onclick="closeModal()">
-    <img id="modal-img" src="" alt="Enlarged View">
+<div class="container" id="chat-screen">
+  <h2>Mada Live Chat</h2>
+  <div id="messages"></div>
+  <form id="chat-form" onsubmit="sendMessage(event)">
+    <input type="text" id="msg-input" placeholder="Type a message..." autocomplete="off">
+    <button type="submit">Send</button>
+  </form>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    let isSignupMode = false;
-    let currentUser = localStorage.getItem('mada_username');
-    let authToken = localStorage.getItem('mada_token');
-    let socket = null;
-    let targetDeleteId = null;
+  let isLogin = true;
+  let currentUser = localStorage.getItem('mada_user') || null;
+  const socket = io();
 
-    const authOverlay = document.getElementById('auth-overlay');
-    const authError = document.getElementById('auth-error');
-    const displayUserName = document.getElementById('display-user-name');
-    const chatBox = document.getElementById('chat-box');
-    const userCountSpan = document.getElementById('user-count');
-    const roomsList = document.getElementById('rooms-list');
-    const currentRoomTitle = document.getElementById('current-room-title');
-    const typingIndicator = document.getElementById('typing-indicator');
-    const typingUserSpan = document.getElementById('typing-user');
-    const emojiPicker = document.getElementById('emoji-picker');
-    const activeReplyBanner = document.getElementById('active-reply-banner');
-    const confirmModal = document.getElementById('confirm-modal');
+  if (currentUser) {
+    showChat();
+  }
 
-    let activeRoom = 'general';
-    let activeReply = null;
-    let mediaRecorder, audioChunks = [], isRecording = false, timerInterval, seconds = 0, typingTimeout;
+  function toggleAuthMode() {
+    isLogin = !isLogin;
+    document.getElementById('auth-title').innerText = isLogin ? 'Login to Mada' : 'Register for Mada';
+    document.getElementById('auth-btn').innerText = isLogin ? 'Login' : 'Register';
+    document.getElementById('switch-text').innerText = isLogin ? "Don't have an account? Register" : "Already have an account? Login";
+  }
 
-    if (authToken && currentUser) {
-        authOverlay.style.display = 'none';
-        displayUserName.innerText = currentUser;
-        initSocketConnection();
+  async function handleAuth() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+
+    if (!username || !password) return alert('Please enter both username and password.');
+
+    const endpoint = isLogin ? '/api/login' : '/api/register';
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      if (isLogin) {
+        currentUser = data.username;
+        localStorage.setItem('mada_user', currentUser);
+        showChat();
+      } else {
+        alert('Registered successfully! Now log in.');
+        toggleAuthMode();
+      }
+    } else {
+      alert(data.error || 'Authentication failed');
     }
+  }
 
-    function toggleAuthMode() {
-        isSignupMode = !isSignupMode;
-        document.getElementById('authSubmitBtn').innerText = isSignupMode ? "Sign Up" : "Login";
-        document.getElementById('switchAuthMode').innerText = isSignupMode ? "Already have an account? Login" : "Need an account? Sign Up";
-        authError.style.display = 'none';
+  function showChat() {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('chat-screen').style.display = 'flex';
+  }
+
+  socket.on('chat history', (history) => {
+    const list = document.getElementById('messages');
+    list.innerHTML = '';
+    history.forEach(appendMessage);
+    scrollToBottom();
+  });
+
+  socket.on('chat message', (msg) => {
+    appendMessage(msg);
+    scrollToBottom();
+  });
+
+  function appendMessage(msg) {
+    const list = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg';
+    div.innerHTML = `<div class="author">${msg.username}</div><div>${msg.message}</div>`;
+    list.appendChild(div);
+  }
+
+  function sendMessage(e) {
+    e.preventDefault();
+    const input = document.getElementById('msg-input');
+    const text = input.value.trim();
+    if (text && currentUser) {
+      socket.emit('chat message', { username: currentUser, message: text });
+      input.value = '';
     }
+  }
 
-    async function submitAuth() {
-        const username = document.getElementById('usernameInput').value.trim();
-        const password = document.getElementById('passwordInput').value.trim();
-        if (!username || !password) return showAuthError("Username and password required");
-
-        const endpoint = isSignupMode ? '/api/signup' : '/api/login';
-        try {
-            const res = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            const data = await res.json();
-            if (!res.ok) return showAuthError(data.error || "Authentication failed");
-
-            localStorage.setItem('mada_token', data.token);
-            localStorage.setItem('mada_username', data.username);
-            authToken = data.token;
-            currentUser = data.username;
-
-            displayUserName.innerText = currentUser;
-            authOverlay.style.display = 'none';
-            initSocketConnection();
-        } catch (err) { showAuthError("Connection error to server"); }
-    }
-
-    function showAuthError(msg) { authError.innerText = msg; authError.style.display = 'block'; }
-    function logout() { localStorage.removeItem('mada_token'); localStorage.removeItem('mada_username'); location.reload(); }
-
-    function initSocketConnection() {
-        socket = io({ auth: { token: authToken } });
-
-        socket.on('connect_error', (err) => { 
-            console.error("Socket error:", err);
-            logout(); 
-        });
-
-        socket.emit('join_room', { room: activeRoom });
-
-        socket.on('room_list', (data) => {
-            roomsList.innerHTML = '';
-            data.rooms.forEach(r => {
-                const count = data.roomUsers[r] || 0;
-                const item = document.createElement('div');
-                item.className = `room-item ${r === activeRoom ? 'active' : ''}`;
-                item.onclick = () => switchRoom(r);
-                item.innerHTML = `<span># ${r}</span><span class="room-badge">${count}</span>`;
-                roomsList.appendChild(item);
-            });
-        });
-
-        socket.on('user_typing', (name) => { typingUserSpan.innerText = name; typingIndicator.style.display = 'block'; });
-        socket.on('user_stop_typing', () => { typingIndicator.style.display = 'none'; });
-
-        socket.on('message_edited', ({ msgId, newText }) => {
-            const wrapper = document.getElementById(`msg-${msgId}`);
-            if (wrapper) {
-                const contentDiv = wrapper.querySelector('.msg-content');
-                const timeSpan = wrapper.querySelector('.timestamp');
-                if (contentDiv) contentDiv.innerText = newText;
-                if (timeSpan && !timeSpan.innerText.includes('(edited)')) timeSpan.innerText += ' (edited)';
-            }
-        });
-
-        socket.on('message_deleted', (msgId) => {
-            const wrapper = document.getElementById(`msg-${msgId}`);
-            if (wrapper) {
-                const bubble = wrapper.querySelector('.bubble');
-                if (bubble) {
-                    bubble.className = 'bubble deleted-bubble';
-                    bubble.innerText = "🚫 This message was deleted";
-                }
-                const triggers = wrapper.querySelector('.reaction-trigger');
-                if (triggers) triggers.remove();
-            }
-        });
-
-        socket.on('update_reactions', ({ msgId, reactions }) => {
-            const wrapper = document.getElementById(`msg-${msgId}`);
-            if (wrapper) {
-                let container = wrapper.querySelector('.reaction-badges');
-                if (!container) {
-                    container = document.createElement('div');
-                    container.className = 'reaction-badges';
-                    wrapper.appendChild(container);
-                }
-                container.innerHTML = Object.entries(reactions).map(([e, count]) => 
-                    `<span class="badge-pill" onclick="sendReaction(${msgId}, '${e}')">${e} ${count}</span>`
-                ).join('');
-            }
-        });
-
-        socket.on('load_history', (messages) => {
-            chatBox.innerHTML = '';
-            messages.forEach(msg => {
-                const parsedReactions = JSON.parse(msg.reactions || '{}');
-                const replyObj = msg.replyTo ? JSON.parse(msg.replyTo) : null;
-
-                if (msg.isDeleted) {
-                    renderDeletedMessage({ id: msg.id, sender: msg.sender, time: msg.time });
-                } else if (msg.type === 'text') {
-                    renderTextMessage({ id: msg.id, sender: msg.sender, text: msg.content, time: msg.time, reactions: parsedReactions, replyTo: replyObj, isEdited: msg.isEdited });
-                } else if (msg.type === 'audio') {
-                    renderAudioMessage({ id: msg.id, sender: msg.sender, audioUrl: msg.content, time: msg.time, reactions: parsedReactions, replyTo: replyObj });
-                } else if (msg.type === 'file') {
-                    renderFileMessage({ id: msg.id, sender: msg.sender, fileName: msg.fileName, fileType: msg.fileType, fileData: msg.content, time: msg.time, reactions: parsedReactions, replyTo: replyObj });
-                }
-            });
-        });
-
-        socket.on('receive_text', (data) => renderTextMessage(data));
-        socket.on('receive_audio', (data) => renderAudioMessage(data));
-        socket.on('receive_file', (data) => renderFileMessage(data));
-    }
-
-    function sendText() {
-        const input = document.getElementById('messageInput');
-        if (!socket) {
-            alert("Not connected to server yet! Try refreshing.");
-            return;
-        }
-        if (input.value.trim() !== "") {
-            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            socket.emit('send_text', { text: input.value, time: time, replyTo: activeReply });
-            socket.emit('stop_typing');
-            cancelReply();
-            input.value = "";
-        }
-    }
-
-    function switchRoom(roomName) {
-        if (roomName === activeRoom) return;
-        activeRoom = roomName;
-        currentRoomTitle.innerText = `# ${roomName}`;
-        chatBox.innerHTML = '';
-        cancelReply();
-        if (socket) socket.emit('join_room', { room: activeRoom });
-    }
-
-    function createRoom() {
-        const input = document.getElementById('newRoomInput');
-        if (input.value.trim() !== '' && socket) {
-            socket.emit('create_room', input.value.trim());
-            input.value = '';
-        }
-    }
-
-    function toggleEmojiPicker() { emojiPicker.style.display = emojiPicker.style.display === 'grid' ? 'none' : 'grid'; }
-    function insertEmoji(emoji) {
-        const input = document.getElementById('messageInput');
-        input.value += emoji;
-        input.focus();
-        emojiPicker.style.display = 'none';
-    }
-
-    function setReplyTarget(sender, previewText) {
-        activeReply = { sender, text: previewText };
-        document.getElementById('reply-user').innerText = sender;
-        document.getElementById('reply-text-preview').innerText = previewText.length > 30 ? previewText.substring(0, 30) + '...' : previewText;
-        activeReplyBanner.style.display = 'flex';
-    }
-
-    function cancelReply() { activeReply = null; activeReplyBanner.style.display = 'none'; }
-    function sendReaction(msgId, emoji) { if(socket) socket.emit('add_reaction', { msgId, emoji }); }
-
-    function startInlineEdit(msgId) {
-        const wrapper = document.getElementById(`msg-${msgId}`);
-        if (!wrapper) return;
-        const contentSpan = wrapper.querySelector('.msg-content');
-        const currentText = contentSpan.innerText;
-
-        const bubble = wrapper.querySelector('.bubble');
-        bubble.setAttribute('data-original-html', bubble.innerHTML);
-
-        bubble.innerHTML = `
-            <div class="inline-edit-box">
-                <input type="text" class="inline-edit-input" id="edit-input-${msgId}" value="${escapeHTML(currentText)}">
-                <div class="inline-edit-actions">
-                    <button class="edit-cancel-btn" onclick="cancelInlineEdit(${msgId})">Cancel</button>
-                    <button class="edit-save-btn" onclick="saveInlineEdit(${msgId})">Save</button>
-                </div>
-            </div>
-        `;
-        const editInput = document.getElementById(`edit-input-${msgId}`);
-        editInput.focus();
-        editInput.onkeydown = (e) => {
-            if (e.key === 'Enter') saveInlineEdit(msgId);
-            if (e.key === 'Escape') cancelInlineEdit(msgId);
-        };
-    }
-
-    function cancelInlineEdit(msgId) {
-        const wrapper = document.getElementById(`msg-${msgId}`);
-        if (!wrapper) return;
-        const bubble = wrapper.querySelector('.bubble');
-        const origHTML = bubble.getAttribute('data-original-html');
-        if (origHTML) bubble.innerHTML = origHTML;
-    }
-
-    function saveInlineEdit(msgId) {
-        const editInput = document.getElementById(`edit-input-${msgId}`);
-        if (editInput && editInput.value.trim() !== "" && socket) {
-            socket.emit('edit_message', { msgId, newText: editInput.value.trim() });
-        }
-    }
-
-    function promptSeamlessDelete(msgId) {
-        targetDeleteId = msgId;
-        confirmModal.style.display = 'flex';
-    }
-
-    function closeDeleteModal() {
-        targetDeleteId = null;
-        confirmModal.style.display = 'none';
-    }
-
-    function confirmDeleteExec() {
-        if (targetDeleteId && socket) {
-            socket.emit('delete_message', targetDeleteId);
-            closeDeleteModal();
-        }
-    }
-
-    function renderDeletedMessage(data) {
-        const isMine = data.sender === currentUser;
-        const wrapper = document.createElement('div');
-        wrapper.id = `msg-${data.id}`;
-        wrapper.className = `msg-wrapper ${isMine ? 'mine' : 'others'}`;
-        wrapper.innerHTML = `<div class="bubble deleted-bubble">🚫 This message was deleted</div>`;
-        chatBox.appendChild(wrapper);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    function renderTextMessage(data) {
-        const isMine = data.sender === currentUser;
-        const wrapper = document.createElement('div');
-        wrapper.id = `msg-${data.id}`;
-        wrapper.className = `msg-wrapper ${isMine ? 'mine' : 'others'}`;
-        
-        let replyBlock = data.replyTo ? `<div class="reply-quote"><b>${data.replyTo.sender}</b>: ${escapeHTML(data.replyTo.text)}</div>` : '';
-        let actionButtons = `<span class="action-link" onclick="setReplyTarget('${data.sender}', '${escapeHTML(data.text)}')">↩ Reply</span>`;
-        if (isMine) {
-            actionButtons += `<span class="action-link" onclick="startInlineEdit(${data.id})">✏ Edit</span>`;
-            actionButtons += `<span class="action-link" onclick="promptSeamlessDelete(${data.id})">🗑 Delete</span>`;
-        }
-
-        wrapper.innerHTML = `
-            ${!isMine ? `<div class="sender-name">${data.sender}</div>` : ''}
-            <div class="reaction-trigger">
-                <button class="react-btn" onclick="sendReaction(${data.id}, '👍')">👍</button>
-                <button class="react-btn" onclick="sendReaction(${data.id}, '❤️')">❤️</button>
-                <button class="react-btn" onclick="sendReaction(${data.id}, '🔥')">🔥</button>
-                ${actionButtons}
-            </div>
-            <div class="bubble">
-                ${replyBlock}
-                <span class="msg-content">${escapeHTML(data.text)}</span>
-                <span class="timestamp">${data.time}${data.isEdited ? ' (edited)' : ''}</span>
-            </div>
-            <div class="reaction-badges">${renderBadges(data.id, data.reactions)}</div>
-        `;
-        chatBox.appendChild(wrapper);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    function renderAudioMessage(data) {
-        const isMine = data.sender === currentUser;
-        const wrapper = document.createElement('div');
-        wrapper.id = `msg-${data.id}`;
-        wrapper.className = `msg-wrapper ${isMine ? 'mine' : 'others'}`;
-        let actionButtons = `<span class="action-link" onclick="setReplyTarget('${data.sender}', 'Voice Note')">↩ Reply</span>`;
-        if (isMine) actionButtons += `<span class="action-link" onclick="promptSeamlessDelete(${data.id})">🗑 Delete</span>`;
-
-        wrapper.innerHTML = `
-            ${!isMine ? `<div class="sender-name">${data.sender}</div>` : ''}
-            <div class="reaction-trigger">
-                <button class="react-btn" onclick="sendReaction(${data.id}, '👍')">👍</button>
-                <button class="react-btn" onclick="sendReaction(${data.id}, '❤️')">❤️</button>
-                ${actionButtons}
-            </div>
-            <div class="bubble"><audio controls src="${data.audioUrl}"></audio><span class="timestamp">${data.time}</span></div>
-            <div class="reaction-badges">${renderBadges(data.id, data.reactions)}</div>
-        `;
-        chatBox.appendChild(wrapper);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    function renderFileMessage(data) {
-        const isMine = data.sender === currentUser;
-        const wrapper = document.createElement('div');
-        wrapper.id = `msg-${data.id}`;
-        wrapper.className = `msg-wrapper ${isMine ? 'mine' : 'others'}`;
-        let content = data.fileType.startsWith('image/') 
-            ? `<img src="${data.fileData}" class="chat-img" onclick="openModal('${data.fileData}')" />`
-            : `<a href="${data.fileData}" download="${data.fileName}" class="file-card">📄 ${escapeHTML(data.fileName)}</a>`;
-
-        let actionButtons = `<span class="action-link" onclick="setReplyTarget('${data.sender}', 'Attachment')">↩ Reply</span>`;
-        if (isMine) actionButtons += `<span class="action-link" onclick="promptSeamlessDelete(${data.id})">🗑 Delete</span>`;
-
-        wrapper.innerHTML = `
-            ${!isMine ? `<div class="sender-name">${data.sender}</div>` : ''}
-            <div class="reaction-trigger">
-                <button class="react-btn" onclick="sendReaction(${data.id}, '👍')">👍</button>
-                <button class="react-btn" onclick="sendReaction(${data.id}, '❤️')">❤️</button>
-                ${actionButtons}
-            </div>
-            <div class="bubble">${content}<span class="timestamp">${data.time}</span></div>
-            <div class="reaction-badges">${renderBadges(data.id, data.reactions)}</div>
-        `;
-        chatBox.appendChild(wrapper);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    function renderBadges(msgId, reactions) {
-        if (!reactions) return '';
-        return Object.entries(reactions).map(([e, count]) => 
-            `<span class="badge-pill" onclick="sendReaction(${msgId}, '${e}')">${e} ${count}</span>`
-        ).join('');
-    }
-
-    function openModal(imgSrc) { document.getElementById('image-modal').style.display = 'flex'; document.getElementById('modal-img').src = imgSrc; }
-    function closeModal() { document.getElementById('image-modal').style.display = 'none'; }
-
-    function sendFile(input) {
-        const file = input.files[0];
-        if (!file || file.size > 8 * 1024 * 1024 || !socket) return;
-        const reader = new FileReader();
-        reader.onload = function() {
-            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            socket.emit('send_file', { fileName: file.name, fileType: file.type, fileData: reader.result, time: time, replyTo: activeReply });
-            cancelReply();
-            input.value = "";
-        };
-        reader.readAsDataURL(file);
-    }
-
-    function handleTyping() {
-        if (socket) socket.emit('typing');
-        clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => { if (socket) socket.emit('stop_typing'); }, 1500);
-    }
-
-    async function toggleRecord() {
-        const btn = document.getElementById('micBtn');
-        const banner = document.getElementById('rec-banner');
-        const timerSpan = document.getElementById('timer');
-
-        if (!isRecording) {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                    const reader = new FileReader();
-                    reader.readAsDataURL(audioBlob);
-                    reader.onloadend = () => {
-                        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        if (socket) socket.emit('send_audio', { audioUrl: reader.result, time: time, replyTo: activeReply });
-                        cancelReply();
-                    };
-                };
-                mediaRecorder.start();
-                isRecording = true;
-                btn.classList.add('recording');
-                btn.innerText = "⏹️";
-                banner.style.display = "block";
-                seconds = 0;
-                timerSpan.innerText = "00:00";
-                timerInterval = setInterval(() => {
-                    seconds++;
-                    let mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-                    let secs = (seconds % 60).toString().padStart(2, '0');
-                    timerSpan.innerText = `${mins}:${secs}`;
-                }, 1000);
-            } catch(err) { alert("Microphone permission required!"); }
-        } else {
-            mediaRecorder.stop();
-            isRecording = false;
-            btn.classList.remove('recording');
-            btn.innerText = "🎤";
-            banner.style.display = "none";
-            clearInterval(timerInterval);
-        }
-    }
-
-    function escapeHTML(str) { return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)); }
+  function scrollToBottom() {
+    const list = document.getElementById('messages');
+    list.scrollTop = list.scrollHeight;
+  }
 </script>
+
 </body>
 </html>

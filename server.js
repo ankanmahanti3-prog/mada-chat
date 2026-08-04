@@ -2,230 +2,94 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-
-const JWT_SECRET = 'mada_super_secret_key_2026';
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
+const io = new Server(server);
 
-const io = new Server(server, { maxHttpBufferSize: 1e7 });
+const SECRET_KEY = 'mada_secret_key_change_in_production';
+
+// Database setup
+const db = new sqlite3.Database('./chat.db', (err) => {
+  if (err) console.error('Database connection error:', err);
+  else console.log('Connected to SQLite database.');
+});
+
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE,
+    password TEXT
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT,
+    message TEXT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+});
 
 app.use(express.json());
-app.use(express.static('public'));
 
-const dbPath = path.join(__dirname, 'chat.db');
-const db = new sqlite3.Database(dbPath);
+// Serving static files (index.html) directly
+app.use(express.static(__dirname));
 
-// Initialize Tables
-db.serialize(() => {
-    // Users Table
-    db.run(`
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
-
-    // Messages Table
-    db.run(`
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            room TEXT NOT NULL DEFAULT 'general',
-            type TEXT NOT NULL,
-            sender TEXT NOT NULL,
-            content TEXT NOT NULL,
-            fileName TEXT,
-            fileType TEXT,
-            time TEXT NOT NULL,
-            reactions TEXT DEFAULT '{}',
-            replyTo TEXT DEFAULT NULL,
-            isEdited INTEGER DEFAULT 0,
-            isDeleted INTEGER DEFAULT 0,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
-
-    // Rooms Table
-    db.run(`CREATE TABLE IF NOT EXISTS rooms (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL)`);
-    db.run(`INSERT OR IGNORE INTO rooms (name) VALUES ('general')`);
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Authentication API Endpoints
-app.post('/api/signup', async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+// Authentication Routes
+app.post('/api/register', async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
 
-    try {
-        const hash = await bcrypt.hash(password, 10);
-        db.run("INSERT INTO users (username, password_hash) VALUES (?, ?)", [username.trim(), hash], function(err) {
-            if (err) return res.status(400).json({ error: 'Username is already taken!' });
-            
-            const token = jwt.sign({ username: username.trim() }, JWT_SECRET, { expiresIn: '7d' });
-            res.json({ token, username: username.trim() });
-        });
-    } catch (e) {
-        res.status(500).json({ error: 'Server error' });
-    }
-});
-
-app.post('/api/login', async (req, res) => {
-    const { username, password } = req.body;
-
-    db.get("SELECT * FROM users WHERE username = ?", [username.trim()], async (err, user) => {
-        if (err || !user) return res.status(401).json({ error: 'User not found or invalid password' });
-
-        const match = await bcrypt.compare(password, user.password_hash);
-        if (!match) return res.status(401).json({ error: 'User not found or invalid password' });
-
-        const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: '7d' });
-        res.json({ token, username: user.username });
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    db.run('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashedPassword], function (err) {
+      if (err) return res.status(400).json({ error: 'Username already exists' });
+      res.json({ message: 'User registered successfully' });
     });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
-// Socket.io Middleware for Authentication Verification
-io.use((socket, next) => {
-    const token = socket.handshake.auth.token;
-    if (!token) return next(new Error("Authentication required"));
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  db.get('SELECT * FROM users WHERE username = ?', [username], async (err, user) => {
+    if (err || !user) return res.status(400).json({ error: 'Invalid credentials' });
 
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
-        if (err) return next(new Error("Invalid session token"));
-        socket.username = decoded.username;
-        next();
-    });
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) return res.status(400).json({ error: 'Invalid credentials' });
+
+    const token = jwt.sign({ username: user.username }, SECRET_KEY, { expiresIn: '24h' });
+    res.json({ token, username: user.username });
+  });
 });
 
-const roomUsers = {};
-
+// Real-time Chat Sockets
 io.on('connection', (socket) => {
-    let currentRoom = 'general';
-    const currentUser = socket.username;
+  // Send chat history to new connection
+  db.all('SELECT username, message, timestamp FROM messages ORDER BY id ASC LIMIT 50', [], (err, rows) => {
+    if (!err) socket.emit('chat history', rows);
+  });
 
-    function broadcastRooms() {
-        db.all("SELECT name FROM rooms ORDER BY name ASC", [], (err, rows) => {
-            if (!err) {
-                const roomList = rows.map(r => r.name);
-                io.emit('room_list', { rooms: roomList, roomUsers: roomUsers });
-            }
-        });
-    }
+  socket.on('chat message', (data) => {
+    const { username, message } = data;
+    if (!username || !message) return;
 
-    socket.on('join_room', (data) => {
-        const room = data.room || 'general';
-        socket.leave(currentRoom);
-        if (roomUsers[currentRoom]) roomUsers[currentRoom] = Math.max(0, roomUsers[currentRoom] - 1);
-
-        currentRoom = room;
-        socket.join(currentRoom);
-
-        roomUsers[currentRoom] = (roomUsers[currentRoom] || 0) + 1;
-        broadcastRooms();
-
-        db.all("SELECT * FROM messages WHERE room = ? ORDER BY id ASC", [currentRoom], (err, rows) => {
-            if (!err) socket.emit('load_history', rows);
-        });
+    db.run('INSERT INTO messages (username, message) VALUES (?, ?)', [username, message], function (err) {
+      if (!err) {
+        io.emit('chat message', { username, message, timestamp: new Date().toISOString() });
+      }
     });
-
-    socket.on('create_room', (roomName) => {
-        const cleanName = roomName.toLowerCase().trim().replace(/\s+/g, '-');
-        if (!cleanName) return;
-        db.run("INSERT OR IGNORE INTO rooms (name) VALUES (?)", [cleanName], (err) => {
-            if (!err) broadcastRooms();
-        });
-    });
-
-    socket.on('send_text', (data) => {
-        const stmt = db.prepare("INSERT INTO messages (room, type, sender, content, time, reactions, replyTo) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        const replyStr = data.replyTo ? JSON.stringify(data.replyTo) : null;
-        stmt.run(currentRoom, 'text', currentUser, data.text, data.time, '{}', replyStr, function(err) {
-            if (!err) {
-                data.id = this.lastID;
-                data.sender = currentUser;
-                data.reactions = {};
-                data.isEdited = 0;
-                data.isDeleted = 0;
-                io.to(currentRoom).emit('receive_text', data);
-            }
-        });
-        stmt.finalize();
-    });
-
-    socket.on('send_audio', (data) => {
-        const stmt = db.prepare("INSERT INTO messages (room, type, sender, content, time, reactions, replyTo) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        const replyStr = data.replyTo ? JSON.stringify(data.replyTo) : null;
-        stmt.run(currentRoom, 'audio', currentUser, data.audioUrl, data.time, '{}', replyStr, function(err) {
-            if (!err) {
-                data.id = this.lastID;
-                data.sender = currentUser;
-                data.reactions = {};
-                data.isEdited = 0;
-                data.isDeleted = 0;
-                io.to(currentRoom).emit('receive_audio', data);
-            }
-        });
-        stmt.finalize();
-    });
-
-    socket.on('send_file', (data) => {
-        const stmt = db.prepare("INSERT INTO messages (room, type, sender, content, fileName, fileType, time, reactions, replyTo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        const replyStr = data.replyTo ? JSON.stringify(data.replyTo) : null;
-        stmt.run(currentRoom, 'file', currentUser, data.fileData, data.fileName, data.fileType, data.time, '{}', replyStr, function(err) {
-            if (!err) {
-                data.id = this.lastID;
-                data.sender = currentUser;
-                data.reactions = {};
-                data.isEdited = 0;
-                data.isDeleted = 0;
-                io.to(currentRoom).emit('receive_file', data);
-            }
-        });
-        stmt.finalize();
-    });
-
-    socket.on('add_reaction', ({ msgId, emoji }) => {
-        db.get("SELECT reactions FROM messages WHERE id = ?", [msgId], (err, row) => {
-            if (err || !row) return;
-            let reactions = JSON.parse(row.reactions || '{}');
-            reactions[emoji] = (reactions[emoji] || 0) + 1;
-
-            const updatedStr = JSON.stringify(reactions);
-            db.run("UPDATE messages SET reactions = ? WHERE id = ?", [updatedStr, msgId], (uErr) => {
-                if (!uErr) {
-                    io.to(currentRoom).emit('update_reactions', { msgId, reactions });
-                }
-            });
-        });
-    });
-
-    socket.on('edit_message', ({ msgId, newText }) => {
-        db.run("UPDATE messages SET content = ?, isEdited = 1 WHERE id = ? AND sender = ?", [newText, msgId, currentUser], (err) => {
-            if (!err) {
-                io.to(currentRoom).emit('message_edited', { msgId, newText });
-            }
-        });
-    });
-
-    socket.on('delete_message', (msgId) => {
-        db.run("UPDATE messages SET isDeleted = 1 WHERE id = ? AND sender = ?", [msgId, currentUser], (err) => {
-            if (!err) {
-                io.to(currentRoom).emit('message_deleted', msgId);
-            }
-        });
-    });
-
-    socket.on('typing', () => socket.to(currentRoom).emit('user_typing', currentUser));
-    socket.on('stop_typing', () => socket.to(currentRoom).emit('user_stop_typing'));
-
-    socket.on('disconnect', () => {
-        if (roomUsers[currentRoom]) roomUsers[currentRoom] = Math.max(0, roomUsers[currentRoom] - 1);
-        broadcastRooms();
-    });
+  });
 });
 
-server.listen(3000, () => {
-    console.log('Mada Authenticated Server running on http://localhost:3000');
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Mada Authenticated Server running on port ${PORT}`);
 });
