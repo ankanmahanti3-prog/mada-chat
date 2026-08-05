@@ -3,112 +3,152 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mada Chat</title>
+  <title>Mada: Neural Chat</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background: #121212; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
-
-    /* Auth Styling */
-    .auth-container { width: 90%; max-width: 400px; background: #1e1e1e; border-radius: 12px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
-    .auth-container h2 { text-align: center; margin-bottom: 20px; color: #bb86fc; }
-    .auth-container input { width: 100%; padding: 12px; margin: 8px 0; background: #2e2e2e; border: 1px solid #3e3e3e; color: #fff; border-radius: 6px; outline: none; }
-    .auth-container button { width: 100%; padding: 12px; margin-top: 10px; background: #bb86fc; border: none; color: #000; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .switch-btn { background: transparent; color: #bb86fc; text-align: center; margin-top: 12px; font-size: 14px; cursor: pointer; text-decoration: underline; }
-
-    /* App Workspace Layout */
-    #app-workspace { display: none; width: 95%; max-width: 1000px; height: 85vh; background: #1e1e1e; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; }
     
-    /* Sidebar */
-    .sidebar { width: 250px; background: #181818; border-right: 1px solid #2e2e2e; display: flex; flex-direction: column; padding: 16px; }
-    .sidebar h3 { color: #bb86fc; margin-bottom: 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
-    .room-list { overflow-y: auto; list-style: none; margin-bottom: 20px; }
-    .room-item { padding: 8px 12px; margin-bottom: 4px; border-radius: 6px; cursor: pointer; color: #aaa; transition: 0.2s; font-size: 14px; display: flex; align-items: center; gap: 6px; }
-    .room-item:hover, .room-item.active { background: #2e2e2e; color: #fff; font-weight: bold; }
-    .status-dot { width: 8px; height: 8px; background: #03dac6; border-radius: 50%; display: inline-block; }
+    body { background: #000; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; position: relative; }
+
+    /* The "Atmosphere" Background (Animated Gradients) */
+    body::before { content: ""; position: absolute; width: 200%; height: 200%; top: -50%; left: -50%; background: radial-gradient(circle at center, rgba(187, 134, 252, 0.15) 0%, rgba(0,0,0,0) 60%), radial-gradient(circle at 10% 10%, rgba(3, 218, 198, 0.1) 0%, rgba(0,0,0,0) 40%), radial-gradient(circle at 90% 90%, rgba(207, 102, 121, 0.1) 0%, rgba(0,0,0,0) 40%); animation: atmosphericGlow 20s infinite alternate; z-index: 0; }
+    @keyframes atmosphericGlow { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-5%, 5%) scale(1.05); } 100% { transform: translate(5%, -5%) scale(1); } }
+
+    /* Auth Screen (AtmosphericGlass) */
+    .auth-container { z-index: 10; width: 90%; max-width: 400px; background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 20px; padding: 32px; border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 10px 40px rgba(0,0,0,0.7), inset 0 0 15px rgba(255, 255, 255, 0.02); transform: perspective(1000px) rotateX(5deg); transition: transform 0.5s ease; }
+    .auth-container:hover { transform: perspective(1000px) rotateX(0deg); }
+    .auth-container h2 { text-align: center; margin-bottom: 24px; color: #bb86fc; font-weight: 300; letter-spacing: 2px; }
+    .auth-container input { width: 100%; padding: 14px; margin: 10px 0; background: rgba(0,0,0,0.3); border: 1px solid rgba(255, 255, 255, 0.05); color: #fff; border-radius: 10px; outline: none; transition: 0.3s; }
+    .auth-container input:focus { border-color: #bb86fc; box-shadow: 0 0 15px rgba(187, 134, 252, 0.3); }
+    .auth-container button { width: 100%; padding: 14px; margin-top: 16px; background: linear-gradient(135deg, #bb86fc 0%, #9965f4 100%); border: none; color: #000; font-weight: bold; border-radius: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; }
+    .auth-container button:hover { box-shadow: 0 0 20px rgba(187, 134, 252, 0.6); transform: translateY(-2px); }
+    .switch-btn { background: transparent; color: #aaa; text-align: center; margin-top: 16px; font-size: 13px; cursor: pointer; text-decoration: underline; transition: 0.2s; }
+    .switch-btn:hover { color: #fff; }
+
+    /* Main App Workspace (The Core AtmosphereGlass container) */
+    #app-workspace { z-index: 5; display: none; width: 95%; max-width: 1200px; height: 90vh; background: rgba(255, 255, 255, 0.01); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border-radius: 24px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.03); box-shadow: 0 20px 60px rgba(0,0,0,0.8), inset 0 0 20px rgba(255, 255, 255, 0.01); transition: box-shadow 0.5s ease; }
     
-    .user-profile { padding-top: 12px; border-top: 1px solid #2e2e2e; display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
-    .logout-btn { background: #cf6679; color: #000; padding: 6px 12px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    /* Responsive Adaptive Glow (Screen pulses when active) */
+    #app-workspace.typing-glow { box-shadow: 0 20px 60px rgba(3, 218, 198, 0.2), inset 0 0 30px rgba(3, 218, 198, 0.05); }
+
+    /* Sidebar (Frosted Glass Interface) */
+    .sidebar { width: 280px; background: rgba(0,0,0,0.2); border-right: 1px solid rgba(255, 255, 255, 0.03); display: flex; flex-direction: column; padding: 20px; transition: 0.3s ease; }
+    .sidebar h3 { color: #bb86fc; margin-bottom: 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 400; opacity: 0.7; }
+    .room-list { overflow-y: auto; list-style: none; margin-bottom: 24px; }
+    
+    .room-item { padding: 12px 16px; margin-bottom: 6px; border-radius: 12px; cursor: pointer; color: #bbb; transition: all 0.3s ease; font-size: 15px; display: flex; align-items: center; gap: 8px; position: relative; }
+    .room-item:hover { color: #fff; background: rgba(255, 255, 255, 0.03); }
+    .room-item.active { background: rgba(187, 134, 252, 0.08); color: #fff; font-weight: 500; border: 1px solid rgba(187, 134, 252, 0.2); }
+    .room-item.active::before { content: ""; position: absolute; left: 8px; width: 3px; height: 60%; background: #bb86fc; border-radius: 2px; box-shadow: 0 0 10px #bb86fc; }
+    
+    .status-dot { width: 9px; height: 9px; background: #03dac6; border-radius: 50%; box-shadow: 0 0 10px #03dac6; transition: 0.3s ease; }
+    .room-item:hover .status-dot { transform: scale(1.2); }
+    
+    .user-profile { padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.03); display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
+    .user-profile span { font-weight: 300; font-size: 15px; color: #fff; letter-spacing: 0.5px; }
+    .logout-btn { background: rgba(207, 102, 121, 0.1); color: #cf6679; padding: 7px 14px; font-size: 12px; border: 1px solid rgba(207, 102, 121, 0.2); border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+    .logout-btn:hover { background: rgba(207, 102, 121, 0.2); transform: translateY(-1px); }
 
     /* Chat Area */
-    .chat-area { flex: 1; display: flex; flex-direction: column; background: #121212; position: relative; }
-    .chat-header { padding: 16px; background: #181818; border-bottom: 1px solid #2e2e2e; font-size: 18px; font-weight: bold; color: #bb86fc; }
+    .chat-area { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.1); position: relative; }
+    .chat-header { padding: 20px; background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255, 255, 255, 0.03); font-size: 20px; font-weight: 300; color: #bb86fc; letter-spacing: 1px; }
     
-    #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    #messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
     
-    /* Message Bubble */
-    .msg { padding: 10px 14px; background: #1e1e1e; border-radius: 12px; max-width: 75%; width: fit-content; position: relative; border: 1px solid #2a2a2a; }
-    .msg.own { background: #2b1d3a; align-self: flex-end; border-color: #4a2d68; }
-    .msg .author { font-size: 11px; color: #bb86fc; font-weight: bold; margin-bottom: 4px; }
+    /* Message Bubble (Dimensional Neumorphism) */
+    .msg { padding: 14px 18px; background: rgba(255, 255, 255, 0.02); border-radius: 16px; max-width: 70%; width: fit-content; position: relative; border: 1px solid rgba(255, 255, 255, 0.03); box-shadow: 0 4px 15px rgba(0,0,0,0.3); animation: messagePop 0.3s ease; }
+    @keyframes messagePop { 0% { transform: scale(0.9) translateY(10px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+    
+    .msg.own { background: rgba(187, 134, 252, 0.05); align-self: flex-end; border-color: rgba(187, 134, 252, 0.15); box-shadow: 0 4px 20px rgba(187, 134, 252, 0.05); }
+    .msg .author { font-size: 12px; color: #bb86fc; font-weight: 400; margin-bottom: 6px; opacity: 0.8; letter-spacing: 0.5px; }
     .msg.own .author { color: #03dac6; }
-    .msg img { max-width: 100%; border-radius: 6px; margin-top: 6px; display: block; }
-    .msg audio { max-width: 100%; margin-top: 6px; outline: none; }
-    .msg .time { font-size: 9px; color: #888; text-align: right; margin-top: 4px; }
+    .msg img { max-width: 100%; border-radius: 10px; margin-top: 8px; display: block; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+    .msg audio { max-width: 100%; margin-top: 8px; outline: none; opacity: 0.8; filter: invert(1); }
+    .msg .time { font-size: 10px; color: #666; text-align: right; margin-top: 6px; font-weight: 300; }
     
-    .msg-actions { position: absolute; top: 6px; right: 8px; opacity: 0; transition: opacity 0.2s ease; display: flex; gap: 6px; background: rgba(30, 30, 30, 0.9); padding: 2px 6px; border-radius: 6px; border: 1px solid #3e3e3e; }
+    .msg-actions { position: absolute; top: 8px; right: 8px; opacity: 0; transition: opacity 0.2s ease; display: flex; gap: 8px; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); padding: 4px 8px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); }
     .msg:hover .msg-actions { opacity: 1; }
-    .action-btn { cursor: pointer; font-size: 12px; opacity: 0.8; transition: transform 0.1s; }
-    .action-btn:hover { opacity: 1; transform: scale(1.15); }
+    .action-btn { cursor: pointer; font-size: 14px; opacity: 0.6; transition: transform 0.1s; }
+    .action-btn:hover { opacity: 1; transform: scale(1.2); }
 
     /* Typing Bar Indicator */
-    .typing-indicator { height: 20px; font-size: 12px; color: #03dac6; padding: 0 16px; font-style: italic; }
+    .typing-indicator { height: 24px; font-size: 13px; color: #03dac6; padding: 0 24px; font-style: italic; font-weight: 300; }
 
-    /* Controls Bar Form */
-    .chat-input-container { padding: 12px; background: #181818; border-top: 1px solid #2e2e2e; display: flex; gap: 8px; align-items: center; position: relative; margin: 0; }
-    .chat-input-container input[type="text"] { flex: 1; padding: 10px 14px; background: #2e2e2e; border: 1px solid #3e3e3e; color: #fff; border-radius: 6px; outline: none; }
-    .icon-btn { background: #2e2e2e; border: 1px solid #3e3e3e; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 16px; transition: 0.2s; }
-    .icon-btn:hover { background: #3e3e3e; }
-    .icon-btn.recording { background: #cf6679; color: #000; animation: pulse 1s infinite; }
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    /* Controls Bar Form (Dimensional input zone) */
+    .chat-input-container { padding: 16px 24px; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255, 255, 255, 0.03); display: flex; gap: 10px; align-items: center; position: relative; margin: 0; }
+    
+    .input-wrapper { flex: 1; position: relative; display: flex; align-items: center; background: rgba(0,0,0,0.3); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 14px; transition: 0.3s; }
+    .input-wrapper:focus-within { border-color: rgba(3, 218, 198, 0.4); box-shadow: 0 0 15px rgba(3, 218, 198, 0.15); }
+    
+    .chat-input-container input[type="text"] { flex: 1; padding: 16px; background: transparent; border: none; color: #fff; outline: none; font-size: 15px; font-weight: 300; }
+    
+    .icon-btn { background: transparent; border: none; color: #777; padding: 10px; cursor: pointer; font-size: 18px; transition: 0.3s ease; }
+    .icon-btn:hover { color: #fff; }
+    .icon-btn.recording { color: #cf6679; animation: recPulse 1.2s infinite; }
+    @keyframes recPulse { 0% { opacity: 1; } 50% { opacity: 0.3; transform: scale(1.1); } 100% { opacity: 1; } }
 
-    .send-btn { background: #bb86fc; border: none; color: #000; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .send-btn { background: rgba(3, 218, 198, 0.1); border: 1px solid rgba(3, 218, 198, 0.3); color: #03dac6; padding: 14px 24px; font-weight: bold; border-radius: 12px; cursor: pointer; text-transform: uppercase; font-size: 13px; letter-spacing: 1px; transition: 0.3s; }
+    .send-btn:hover { background: rgba(3, 218, 198, 0.2); box-shadow: 0 0 15px rgba(3, 218, 198, 0.3); transform: translateY(-1px); }
     
     /* Emoji Box */
-    .emoji-picker { display: none; position: absolute; bottom: 60px; right: 120px; background: #1e1e1e; border: 1px solid #3e3e3e; border-radius: 8px; padding: 8px; grid-template-columns: repeat(5, 1fr); gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-    .emoji-picker span { font-size: 20px; cursor: pointer; text-align: center; }
+    .emoji-picker { display: none; position: absolute; bottom: 85px; right: 110px; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 10px; grid-template-columns: repeat(5, 1fr); gap: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); z-index: 100; }
+    .emoji-picker span { font-size: 22px; cursor: pointer; text-align: center; transition: 0.2s; }
+    .emoji-picker span:hover { transform: scale(1.3); }
+    
+    /* Global Blur Focus (blurs screen when an prompt is active) */
+    body.prompt-active #app-workspace { filter: blur(5px) saturate(0.8); }
+
+    /* Custom Advanced Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(187, 134, 252, 0.2); }
   </style>
 </head>
-<body>
+<body onmousemove="atmosphericInteraction(event)">
 
 <div class="auth-container" id="auth-screen">
-  <h2 id="auth-title">Login to Mada</h2>
-  <input type="text" id="username" placeholder="Username" autocomplete="off">
-  <input type="password" id="password" placeholder="Password">
-  <button id="auth-btn" onclick="handleAuth()">Login</button>
-  <div class="switch-btn" onclick="toggleAuthMode()" id="switch-text">Don't have an account? Register</div>
+  <h2 id="auth-title">neural::access</h2>
+  <input type="text" id="username" placeholder="neural_tag" autocomplete="off">
+  <input type="password" id="password" placeholder="neural_key">
+  <button id="auth-btn" onclick="handleAuth()">Authenticate</button>
+  <div class="switch-btn" onclick="toggleAuthMode()" id="switch-text">New interface detected? Register</div>
 </div>
 
 <div id="app-workspace">
   <div class="sidebar">
-    <h3>Rooms</h3>
+    <h3>rooms</h3>
     <ul class="room-list">
-      <li class="room-item active" onclick="switchRoom('General', this)"># General</li>
-      <li class="room-item" onclick="switchRoom('Random', this)"># Random</li>
-      <li class="room-item" onclick="switchRoom('Tech', this)"># Tech</li>
+      <li class="room-item active" onclick="switchRoom('General', this)"># general</li>
+      <li class="room-item" onclick="switchRoom('Random', this)"># random</li>
+      <li class="room-item" onclick="switchRoom('Tech', this)"># tech</li>
     </ul>
 
-    <h3>Online Users</h3>
+    <h3>active_neural_links</h3>
     <ul class="room-list" id="online-users-list">
-      <!-- Dynamically populated online users -->
     </ul>
 
     <div class="user-profile">
-      <span id="current-user-display" style="font-weight: bold; font-size: 14px;"></span>
-      <button class="logout-btn" onclick="logout()">Logout</button>
+      <span id="current-user-display"></span>
+      <button class="logout-btn" onclick="logout()">Terminate</button>
     </div>
   </div>
 
   <div class="chat-area">
-    <div class="chat-header" id="room-header"># General</div>
+    <div class="chat-header" id="room-header">:: neural_link_active // #general</div>
     <div id="messages"></div>
     <div class="typing-indicator" id="typing-indicator"></div>
     
     <form class="chat-input-container" onsubmit="sendMessage(event)">
       <input type="file" id="file-input" style="display: none;" onchange="handleFileUpload(event)">
-      <button type="button" class="icon-btn" title="Attach File" onclick="document.getElementById('file-input').click()">📎</button>
-      <button type="button" class="icon-btn" id="mic-btn" title="Record Voice Message" onclick="toggleRecordAudio()">🎙️</button>
-      <button type="button" class="icon-btn" title="Emojis" onclick="toggleEmojiPicker()">😀</button>
-      <input type="text" id="msg-input" placeholder="Type a message..." autocomplete="off" oninput="handleTyping()">
-      <button type="submit" class="send-btn">Send</button>
+      
+      <div class="input-wrapper">
+        <button type="button" class="icon-btn" title="📎 Attach Neural Data" onclick="document.getElementById('file-input').click()">+</button>
+        <input type="text" id="msg-input" placeholder="Transmit neural thought..." autocomplete="off" oninput="handleTyping()" onfocus="startTypingGlow()" onblur="stopTypingGlow()">
+        <button type="button" class="icon-btn" title="😀 Emojis" onclick="toggleEmojiPicker()">😀</button>
+        <button type="button" class="icon-btn" id="mic-btn" title="🎙️ Record Audio Stream" onclick="toggleRecordAudio()">🎙️</button>
+      </div>
+      
+      <button type="submit" class="send-btn">Transmit</button>
 
       <div class="emoji-picker" id="emoji-picker">
         <span onclick="addEmoji('😊')">😊</span>
@@ -140,16 +180,16 @@
 
   function toggleAuthMode() {
     isLogin = !isLogin;
-    document.getElementById('auth-title').innerText = isLogin ? 'Login to Mada' : 'Register for Mada';
-    document.getElementById('auth-btn').innerText = isLogin ? 'Login' : 'Register';
-    document.getElementById('switch-text').innerText = isLogin ? "Don't have an account? Register" : "Already have an account? Login";
+    document.getElementById('auth-title').innerText = isLogin ? 'neural::access' : 'neural::provision';
+    document.getElementById('auth-btn').innerText = isLogin ? 'Authenticate' : 'Provision';
+    document.getElementById('switch-text').innerText = isLogin ? "New interface detected? Register" : "Interface provisioned? Log In";
   }
 
   async function handleAuth() {
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value.trim();
 
-    if (!username || !password) return alert('Please enter both username and password.');
+    if (!username || !password) return alert('Input required.');
 
     const endpoint = isLogin ? '/api/login' : '/api/register';
     const res = await fetch(endpoint, {
@@ -165,18 +205,18 @@
         localStorage.setItem('mada_user', currentUser);
         showWorkspace();
       } else {
-        alert('Registered successfully! Switching to Login...');
+        alert('Provisioning complete. Switching to Authenticate...');
         toggleAuthMode();
       }
     } else {
-      alert(data.error || 'Authentication failed');
+      alert(data.error || 'Access denied.');
     }
   }
 
   function showWorkspace() {
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app-workspace').style.display = 'flex';
-    document.getElementById('current-user-display').innerText = currentUser;
+    document.getElementById('current-user-display').innerText = `neural_tag: ${currentUser}`;
     
     socket.emit('user connected', currentUser);
     socket.emit('join room', currentRoom);
@@ -191,7 +231,7 @@
   function switchRoom(room, el) {
     currentRoom = room;
     const isDM = room.startsWith('dm_');
-    const headerTitle = isDM ? '💬 DM: ' + getDMRecipientName(room) : '# ' + room;
+    const headerTitle = isDM ? '💬 neural_dm_stream: ' + getDMRecipientName(room) : ':: neural_link_active // # ' + room;
     document.getElementById('room-header').innerText = headerTitle;
     
     document.querySelectorAll('.room-item').forEach(item => item.classList.remove('active'));
@@ -208,7 +248,7 @@
   }
 
   function getDMRecipientName(dmRoom) {
-    return dmRoom.replace('dm_', '').split('_').filter(u => u !== currentUser)[0] || 'User';
+    return dmRoom.replace('dm_', '').split('_').filter(u => u !== currentUser)[0] || 'Unknown Neural Link';
   }
 
   socket.on('online users update', (users) => {
@@ -220,7 +260,7 @@
       li.innerHTML = `<span class="status-dot"></span> ${user} ${user === currentUser ? '(You)' : ''}`;
       if (user !== currentUser) {
         li.onclick = () => openDM(user);
-        li.title = "Click to Direct Message";
+        li.title = "Tap to Establish Direct Neural DM";
       }
       list.appendChild(li);
     });
@@ -240,7 +280,15 @@
     }
   });
 
-  /* Typing Events */
+  /* Typing Adaptive Glow Functions */
+  function startTypingGlow() {
+    document.getElementById('app-workspace').classList.add('typing-glow');
+  }
+  
+  function stopTypingGlow() {
+    document.getElementById('app-workspace').classList.remove('typing-glow');
+  }
+
   function handleTyping() {
     socket.emit('typing', { username: currentUser, room: currentRoom });
     clearTimeout(typingTimeout);
@@ -251,7 +299,7 @@
 
   socket.on('user typing', (data) => {
     if (data.room === currentRoom) {
-      document.getElementById('typing-indicator').innerText = `${data.username} is typing...`;
+      document.getElementById('typing-indicator').innerText = `${data.username} transmitting thought stream...`;
     }
   });
 
@@ -263,7 +311,7 @@
 
   socket.on('message edited', (data) => {
     const msgEl = document.querySelector(`[data-id="${data.id}"] .msg-text`);
-    if (msgEl) msgEl.innerText = data.newMessage + ' (edited)';
+    if (msgEl) msgEl.innerText = data.newMessage + ' (neural update)';
   });
 
   socket.on('message deleted', (data) => {
@@ -287,15 +335,15 @@
       } else if (msg.fileUrl.startsWith('data:image/')) {
         contentHtml += `<img src="${msg.fileUrl}">`;
       } else {
-        contentHtml += `<a href="${msg.fileUrl}" download="file" style="color: #bb86fc; display: block; margin-top: 6px;">📎 Download Attachment</a>`;
+        contentHtml += `<a href="${msg.fileUrl}" download="file" style="color: #03dac6; display: block; margin-top: 8px; font-weight: 300;">📎 Link Attachment</a>`;
       }
     }
 
     if (isOwn) {
       contentHtml += `
         <div class="msg-actions">
-          <span class="action-btn" title="Edit Message" onclick="editMsg(${msg.id}, \`${msg.message || ''}\`)">✏️</span>
-          <span class="action-btn" title="Delete Message" onclick="deleteMsg(${msg.id})">🗑️</span>
+          <span class="action-btn" title="Neural Update" onclick="editMsg(${msg.id}, \`${msg.message || ''}\`)">✏️</span>
+          <span class="action-btn" title="Terminate Thought" onclick="deleteMsg(${msg.id})">🗑️</span>
         </div>`;
     }
 
@@ -317,14 +365,19 @@
   }
 
   function editMsg(id, oldText) {
-    const newText = prompt('Edit your message:', oldText);
+    document.body.classList.add('prompt-active');
+    const newText = prompt('Perform Neural Update:', oldText);
+    document.body.classList.remove('prompt-active');
     if (newText && newText !== oldText) {
       socket.emit('edit message', { id, room: currentRoom, username: currentUser, newMessage: newText });
     }
   }
 
   function deleteMsg(id) {
-    if (confirm('Delete this message?')) {
+    document.body.classList.add('prompt-active');
+    const confirmDelete = confirm('Terminate this thought stream?');
+    document.body.classList.remove('prompt-active');
+    if (confirmDelete) {
       socket.emit('delete message', { id, room: currentRoom, username: currentUser });
     }
   }
@@ -366,7 +419,7 @@
         micBtn.classList.add('recording');
         micBtn.innerText = '⏹️';
       } catch (err) {
-        alert('Microphone access denied or not available.');
+        alert('Microphone link terminated. Provide data permission.');
       }
     } else {
       mediaRecorder.stop();
@@ -385,11 +438,23 @@
     const input = document.getElementById('msg-input');
     input.value += emoji;
     document.getElementById('emoji-picker').style.display = 'none';
+    handleTyping();
   }
 
   function scrollToBottom() {
     const list = document.getElementById('messages');
     list.scrollTop = list.scrollHeight;
+  }
+  
+  /* Background Interaction (Subtle mouse glow) */
+  function atmosphericInteraction(e) {
+    const blurElement = document.getElementById('app-workspace');
+    if (blurElement.style.display === 'flex') {
+        const rect = blurElement.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        blurElement.style.background = `rgba(255, 255, 255, 0.01) radial-gradient(circle at ${x}px ${y}px, rgba(255, 255, 255, 0.015) 0%, rgba(0,0,0,0) 25%)`;
+    }
   }
 </script>
 
