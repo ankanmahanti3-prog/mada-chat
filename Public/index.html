@@ -2,7 +2,7 @@
 <html lang="en" data-theme="purple">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>NEURAL LINK | Cybernetic Chat 2045</title>
   <style>
     :root {
@@ -40,7 +40,7 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-    body { background: var(--bg-color); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; position: relative; }
+    body { background: var(--bg-color); color: var(--text-main); height: 100dvh; overflow: hidden; display: flex; justify-content: center; align-items: center; position: relative; }
 
     /* Ambient Background Canvas */
     #ambient-canvas { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; opacity: 0.04; }
@@ -51,7 +51,7 @@
       display: none;
       width: 96%;
       max-width: 1280px;
-      height: 92vh;
+      height: 92dvh;
       background: var(--card-bg);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
@@ -76,7 +76,7 @@
     .switch-btn { background: transparent; color: var(--text-muted); margin-top: 16px; font-size: 13px; cursor: pointer; text-decoration: underline; }
 
     /* Sidebar */
-    .sidebar { width: 300px; background: rgba(0,0,0,0.3); border-right: var(--card-border); display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; }
+    .sidebar { width: 300px; background: rgba(0,0,0,0.4); border-right: var(--card-border); display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; z-index: 30; transition: transform 0.3s ease; }
     .brand-header { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
     .brand-logo { width: 32px; height: 32px; background: var(--accent-light); border: 1px solid var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
     .brand-title { font-size: 16px; font-weight: 600; letter-spacing: 2px; color: #fff; }
@@ -107,27 +107,29 @@
     @keyframes avatarGlow { 0% { box-shadow: 0 0 0 0 var(--accent-glow); } 50% { box-shadow: 0 0 15px 5px var(--accent-glow); } 100% { box-shadow: 0 0 0 0 var(--accent-glow); } }
 
     /* Main Chat Interface */
-    .chat-area { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.15); position: relative; }
-    .chat-header { padding: 16px 24px; background: rgba(0,0,0,0.2); border-bottom: var(--card-border); display: flex; justify-content: space-between; align-items: center; }
+    .chat-area { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.15); position: relative; width: 100%; }
+    .chat-header { padding: 16px 20px; background: rgba(0,0,0,0.2); border-bottom: var(--card-border); display: flex; justify-content: space-between; align-items: center; }
     .chat-header-title { font-size: 18px; font-weight: 500; color: #fff; display: flex; align-items: center; gap: 10px; }
     
+    .mobile-menu-btn { display: none; background: rgba(255,255,255,0.05); border: var(--card-border); color: var(--accent); padding: 6px 12px; border-radius: 8px; font-size: 18px; cursor: pointer; }
+
     .theme-selector { display: flex; gap: 6px; align-items: center; background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 20px; border: var(--card-border); }
     .theme-dot { width: 14px; height: 14px; border-radius: 50%; cursor: pointer; transition: 0.2s; }
     .theme-dot:hover { transform: scale(1.2); }
 
     /* Empty State */
-    #messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
+    #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
     .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); text-align: center; }
     .neural-graphic { width: 80px; height: 80px; border-radius: 50%; border: 2px stroke var(--accent); border-top-color: transparent; animation: spin 4s infinite linear; margin-bottom: 16px; position: relative; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
     /* Capsule Chat Bubbles */
-    .msg { max-width: 65%; padding: 14px 20px; border-radius: 24px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.05); position: relative; animation: messageSlide 0.15s cubic-bezier(0.1, 0.9, 0.2, 1); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+    .msg { max-width: 80%; padding: 12px 18px; border-radius: 20px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.05); position: relative; animation: messageSlide 0.15s cubic-bezier(0.1, 0.9, 0.2, 1); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
     @keyframes messageSlide { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
     .msg.own { align-self: flex-end; background: var(--accent-light); border-color: var(--accent-glow); border-bottom-right-radius: 6px; }
     .msg:not(.own) { border-bottom-left-radius: 6px; }
     .msg .author { font-size: 11px; color: var(--accent); font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .msg .msg-text { font-size: 14.5px; line-height: 1.5; color: #f0f0f5; }
+    .msg .msg-text { font-size: 14px; line-height: 1.5; color: #f0f0f5; word-break: break-word; }
     .msg img { max-width: 100%; border-radius: 12px; margin-top: 8px; display: block; }
     .msg .time { font-size: 10px; color: var(--text-muted); text-align: right; margin-top: 6px; }
 
@@ -143,20 +145,20 @@
     .act-btn:hover { opacity: 1; transform: scale(1.15); }
 
     /* AI Presence Indicator */
-    .ai-presence { height: 26px; padding: 0 24px; font-size: 12px; color: var(--cyan); display: flex; align-items: center; gap: 8px; font-style: italic; }
+    .ai-presence { height: 26px; padding: 0 20px; font-size: 12px; color: var(--cyan); display: flex; align-items: center; gap: 8px; font-style: italic; }
 
     /* Controls Input Bar */
-    .chat-input-container { padding: 16px 24px; background: rgba(0,0,0,0.25); border-top: var(--card-border); display: flex; gap: 12px; align-items: center; }
-    .input-wrapper { flex: 1; display: flex; align-items: center; background: rgba(0,0,0,0.4); border: var(--card-border); border-radius: 16px; padding: 4px 12px; transition: 0.3s; }
+    .chat-input-container { padding: 12px 16px; background: rgba(0,0,0,0.25); border-top: var(--card-border); display: flex; gap: 8px; align-items: center; }
+    .input-wrapper { flex: 1; display: flex; align-items: center; background: rgba(0,0,0,0.4); border: var(--card-border); border-radius: 16px; padding: 2px 8px; transition: 0.3s; }
     .input-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 15px var(--accent-glow); }
-    .input-wrapper input { flex: 1; padding: 12px; background: transparent; border: none; color: #fff; outline: none; font-size: 15px; }
+    .input-wrapper input { flex: 1; padding: 10px; background: transparent; border: none; color: #fff; outline: none; font-size: 14px; min-width: 0; }
     
-    .icon-btn { background: transparent; border: none; color: var(--text-muted); padding: 8px; cursor: pointer; font-size: 18px; transition: 0.2s; }
+    .icon-btn { background: transparent; border: none; color: var(--text-muted); padding: 6px; cursor: pointer; font-size: 16px; transition: 0.2s; }
     .icon-btn:hover { color: #fff; }
     .icon-btn.recording { color: #ff1744; animation: recPulse 1s infinite; }
     @keyframes recPulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-    .send-btn { background: var(--accent); border: none; color: #000; padding: 12px 24px; font-weight: bold; border-radius: 14px; cursor: pointer; font-size: 13px; letter-spacing: 1px; transition: 0.3s; }
+    .send-btn { background: var(--accent); border: none; color: #000; padding: 10px 18px; font-weight: bold; border-radius: 14px; cursor: pointer; font-size: 12px; letter-spacing: 1px; transition: 0.3s; flex-shrink: 0; }
     .send-btn:hover { box-shadow: 0 0 15px var(--accent-glow); transform: translateY(-1px); }
 
     /* Command Palette */
@@ -167,15 +169,19 @@
     .cmd-item:hover { background: var(--accent-light); color: #fff; }
 
     /* Emoji Picker */
-    .emoji-picker { display: none; position: absolute; bottom: 85px; right: 110px; background: rgba(10, 10, 15, 0.95); border: var(--card-border); border-radius: 14px; padding: 12px; grid-template-columns: repeat(5, 1fr); gap: 10px; z-index: 100; backdrop-filter: blur(20px); }
+    .emoji-picker { display: none; position: absolute; bottom: 70px; right: 20px; background: rgba(10, 10, 15, 0.95); border: var(--card-border); border-radius: 14px; padding: 12px; grid-template-columns: repeat(5, 1fr); gap: 10px; z-index: 100; backdrop-filter: blur(20px); }
     .emoji-picker span { font-size: 22px; cursor: pointer; text-align: center; }
 
-    /* Responsive Mobile Layout */
+    /* Responsive Mobile Overlays */
+    .sidebar-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 25; }
+
     @media (max-width: 768px) {
-      #app-workspace { width: 100%; height: 100vh; border-radius: 0; }
-      .sidebar { position: absolute; left: -100%; top: 0; height: 100%; z-index: 50; transition: 0.3s ease; background: rgba(10,10,15,0.95); backdrop-filter: blur(25px); }
-      .sidebar.open { left: 0; width: 80%; }
-      .mobile-menu-btn { display: block !important; }
+      #app-workspace { width: 100%; height: 100dvh; border-radius: 0; border: none; }
+      .sidebar { position: absolute; left: 0; top: 0; height: 100%; width: 280px; transform: translateX(-100%); background: rgba(10,10,15,0.98); backdrop-filter: blur(25px); }
+      .sidebar.open { transform: translateX(0); }
+      .mobile-menu-btn { display: inline-block; }
+      .sidebar-overlay.open { display: block; }
+      .msg { max-width: 90%; }
     }
   </style>
 </head>
@@ -195,6 +201,8 @@
 
 <!-- Main Workspace -->
 <div id="app-workspace">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+  
   <div class="sidebar" id="sidebar">
     <div class="brand-header">
       <div class="brand-logo">N</div>
@@ -225,7 +233,7 @@
   <div class="chat-area">
     <div class="chat-header">
       <div class="chat-header-title">
-        <button class="icon-btn mobile-menu-btn" style="display:none;" onclick="toggleMobileSidebar()">☰</button>
+        <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">☰</button>
         <span id="room-header"># General</span>
       </div>
       
@@ -246,7 +254,7 @@
       <input type="file" id="file-input" style="display:none;" onchange="handleFileUpload(event)">
       <div class="input-wrapper">
         <button type="button" class="icon-btn" title="Attach Data" onclick="document.getElementById('file-input').click()">+</button>
-        <input type="text" id="msg-input" placeholder="Transmit thought... (Ctrl+K for Commands, @AI to query)" autocomplete="off" oninput="handleTyping()">
+        <input type="text" id="msg-input" placeholder="Transmit thought..." autocomplete="off" oninput="handleTyping()">
         <button type="button" class="icon-btn" title="Voice-to-Text" onclick="toggleSpeechRecognition()">🎤</button>
         <button type="button" class="icon-btn" id="mic-btn" title="Audio Stream" onclick="toggleRecordAudio()">🎙️</button>
         <button type="button" class="icon-btn" title="Emojis" onclick="toggleEmojiPicker()">😊</button>
@@ -375,11 +383,12 @@
     if (el) el.classList.add('active');
     document.getElementById('messages').innerHTML = '';
     socket.emit('join room', currentRoom);
-    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+    if (window.innerWidth <= 768) toggleMobileSidebar();
   }
 
   function toggleMobileSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('open');
   }
 
   socket.on('online users update', (users) => {
@@ -590,7 +599,7 @@
     list.scrollTop = list.scrollHeight;
   }
 
-  /* Smart Command Palette */
+  /* Command Palette */
   window.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key.toLowerCase() === 'k') {
       e.preventDefault();
