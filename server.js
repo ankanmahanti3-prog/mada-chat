@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -5,15 +6,21 @@ const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const Groq = require('groq-sdk');
 
 const app = express();
 const server = http.createServer(app);
+
+// Initialize Groq AI Client safely using process.env
+const groq = new Groq({ 
+  apiKey: process.env.GROQ_API_KEY 
+});
 
 const io = new Server(server, {
   maxHttpBufferSize: 5 * 1024 * 1024
 });
 
-const SECRET_KEY = 'mada_secret_key_change_in_production';
+const SECRET_KEY = process.env.SECRET_KEY || 'mada_secret_key_change_in_production';
 
 // In-memory SQLite DB
 const db = new sqlite3.Database(':memory:', (err) => {
@@ -77,28 +84,31 @@ app.post('/api/login', (req, res) => {
 // Active Users Tracking
 const activeUsers = new Map();
 
-// Context-aware Conversational AI Logic
-function generateAIResponse(userText) {
-  const text = userText.toLowerCase();
-  
-  if (text.includes('hi') || text.includes('hello') || text.includes('hey')) {
-    return "Neural AI link established. Greetings, operator! How can I assist your network today?";
-  }
-  if (text.includes('how are you')) {
-    return "All neural pathways operational at 99.8% efficiency! Quantum latency is optimal. How are your systems performing?";
-  }
-  if (text.includes('who are you') || text.includes('what are you')) {
-    return "I am Neural AI—the core intelligence unit governing this cybernetic terminal. I assist with data processing, code optimization, and real-time chat operations.";
-  }
-  if (text.includes('code') || text.includes('bug') || text.includes('dev')) {
-    return "Scanning developer telemetry... Code parameters looking stable! Need help optimizing functions or debugging sockets?";
-  }
-  if (text.includes('help')) {
-    return "Command directory online: Try asking me questions, typing @AI in any room, or using Ctrl+K to trigger terminal commands!";
-  }
+// High-Speed Groq AI Request Function
+async function fetchAIResponse(userMessage) {
+  try {
+    if (!process.env.GROQ_API_KEY) {
+      return "Neural stream offline: GROQ_API_KEY environment variable is not set.";
+    }
 
-  // Dynamic contextual echo response
-  return `Processing query: "${userText}"...\nNeural analysis complete: Direct link established across active sub-nodes. I am standing by for your next directive.`;
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are Neural AI, an intelligent, helpful, and concise cybernetic assistant operating in the Neural Link terminal (year 2045). Answer questions clearly, accurately, and assist with any domain, code, math, or query.'
+        },
+        { role: 'user', content: userMessage }
+      ],
+      model: 'llama-3.1-8b-instant',
+      temperature: 0.7,
+      max_tokens: 400
+    });
+
+    return completion.choices[0]?.message?.content || "Neural transmission complete.";
+  } catch (err) {
+    console.error("Groq AI Error:", err.message);
+    return "Neural stream error: Check API link status.";
+  }
 }
 
 io.on('connection', (socket) => {
@@ -116,37 +126,39 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on('chat message', (data) => {
+  socket.on('chat message', async (data) => {
     const { room, username, message, fileUrl } = data;
     if (!username || (!message && !fileUrl)) return;
 
-    db.run('INSERT INTO messages (room, username, message, fileUrl) VALUES (?, ?, ?, ?)', [room || 'General', username, message, fileUrl], function (err) {
+    db.run('INSERT INTO messages (room, username, message, fileUrl) VALUES (?, ?, ?, ?)', [room || 'General', username, message, fileUrl], async function (err) {
       if (!err) {
         const msgData = { id: this.lastID, room: room || 'General', username, message, fileUrl, timestamp: new Date().toISOString() };
         io.to(room || 'General').emit('chat message', msgData);
 
-        // Smart Trigger for AI Assistant Channel or @AI tag
+        // Smart Trigger for AI Assistant Channel or @AI Tag
         if (message && (message.toLowerCase().includes('@ai') || room === 'AI Assistant') && username !== 'Neural AI') {
-          setTimeout(() => {
-            io.to(room || 'General').emit('user typing', { username: 'Neural AI', room: room || 'General', text: 'Analyzing intent... Neural activity 88%' });
-          }, 300);
+          const cleanPrompt = message.replace(/@ai/gi, '').trim() || "Hello Neural AI";
+          
+          io.to(room || 'General').emit('user typing', { 
+            username: 'Neural AI', 
+            room: room || 'General', 
+            text: 'Neural AI processing query via Groq Quantum Link...' 
+          });
 
-          setTimeout(() => {
-            const aiReply = generateAIResponse(message.replace(/@ai/gi, '').trim());
-            
-            db.run('INSERT INTO messages (room, username, message) VALUES (?, ?, ?)', [room || 'General', 'Neural AI', aiReply], function(err2) {
-              if (!err2) {
-                io.to(room || 'General').emit('stop typing', { username: 'Neural AI', room: room || 'General' });
-                io.to(room || 'General').emit('chat message', {
-                  id: this.lastID,
-                  room: room || 'General',
-                  username: 'Neural AI',
-                  message: aiReply,
-                  timestamp: new Date().toISOString()
-                });
-              }
-            });
-          }, 1500);
+          const aiReply = await fetchAIResponse(cleanPrompt);
+
+          db.run('INSERT INTO messages (room, username, message) VALUES (?, ?, ?)', [room || 'General', 'Neural AI', aiReply], function(err2) {
+            if (!err2) {
+              io.to(room || 'General').emit('stop typing', { username: 'Neural AI', room: room || 'General' });
+              io.to(room || 'General').emit('chat message', {
+                id: this.lastID,
+                room: room || 'General',
+                username: 'Neural AI',
+                message: aiReply,
+                timestamp: new Date().toISOString()
+              });
+            }
+          });
         }
       }
     });
@@ -186,5 +198,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Neural Link Server running on port ${PORT}`);
+  console.log(`Neural Link 2045 Server running on port ${PORT}`);
 });
