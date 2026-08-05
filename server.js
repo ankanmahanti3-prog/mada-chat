@@ -12,7 +12,7 @@ const io = new Server(server);
 
 const SECRET_KEY = 'mada_secret_key_change_in_production';
 
-// In-memory SQLite DB for fast, reliable cloud deployment
+// In-memory SQLite DB
 const db = new sqlite3.Database(':memory:', (err) => {
   if (err) console.error('Database connection error:', err);
   else console.log('Connected to SQLite database.');
@@ -37,7 +37,6 @@ db.serialize(() => {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'Public')));
 
-// Serve index.html from Public folder on root path
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'Public', 'index.html'));
 });
@@ -71,8 +70,17 @@ app.post('/api/login', (req, res) => {
   });
 });
 
-// Real-time Chat Sockets (Multi-room, Editing, Deletion, Files)
+// Real-time Active Users Tracking
+const activeUsers = new Map(); // socket.id -> username
+
 io.on('connection', (socket) => {
+  socket.on('user connected', (username) => {
+    if (username) {
+      activeUsers.set(socket.id, username);
+      io.emit('online users update', Array.from(new Set(activeUsers.values())));
+    }
+  });
+
   socket.on('join room', (room) => {
     socket.join(room);
     db.all('SELECT id, room, username, message, fileUrl, timestamp FROM messages WHERE room = ? ORDER BY id ASC LIMIT 50', [room], (err, rows) => {
@@ -92,6 +100,15 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Typing Events
+  socket.on('typing', (data) => {
+    socket.to(data.room).emit('user typing', { username: data.username, room: data.room });
+  });
+
+  socket.on('stop typing', (data) => {
+    socket.to(data.room).emit('user stop typing', { username: data.username, room: data.room });
+  });
+
   socket.on('edit message', (data) => {
     const { id, room, username, newMessage } = data;
     db.run('UPDATE messages SET message = ? WHERE id = ? AND username = ?', [newMessage, id, username], function (err) {
@@ -108,6 +125,11 @@ io.on('connection', (socket) => {
         io.to(room).emit('message deleted', { id });
       }
     });
+  });
+
+  socket.on('disconnect', () => {
+    activeUsers.delete(socket.id);
+    io.emit('online users update', Array.from(new Set(activeUsers.values())));
   });
 });
 
