@@ -8,7 +8,11 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+
+// Configure Socket.io with max Http Buffer Size limit (5MB max payload)
+const io = new Server(server, {
+  maxHttpBufferSize: 5 * 1024 * 1024
+});
 
 const SECRET_KEY = 'mada_secret_key_change_in_production';
 
@@ -32,9 +36,10 @@ db.serialize(() => {
     fileUrl TEXT,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_messages_room ON messages(room)`);
 });
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname, 'Public')));
 
 app.get('/', (req, res) => {
@@ -70,8 +75,8 @@ app.post('/api/login', (req, res) => {
   });
 });
 
-// Real-time Active Users Tracking
-const activeUsers = new Map(); // socket.id -> username
+// Active Users Tracking
+const activeUsers = new Map();
 
 io.on('connection', (socket) => {
   socket.on('user connected', (username) => {
@@ -100,7 +105,7 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Typing Events
+  // Debounced Typing Events
   socket.on('typing', (data) => {
     socket.to(data.room).emit('user typing', { username: data.username, room: data.room });
   });
@@ -135,5 +140,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Mada Authenticated Server running on port ${PORT}`);
+  console.log(`Mada Optimized Server running on port ${PORT}`);
 });
