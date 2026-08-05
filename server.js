@@ -9,7 +9,6 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Configure Socket.io with max Http Buffer Size limit (5MB max payload)
 const io = new Server(server, {
   maxHttpBufferSize: 5 * 1024 * 1024
 });
@@ -101,13 +100,42 @@ io.on('connection', (socket) => {
       if (!err) {
         const msgData = { id: this.lastID, room: room || 'General', username, message, fileUrl, timestamp: new Date().toISOString() };
         io.to(room || 'General').emit('chat message', msgData);
+
+        // Check if message triggers AI assistant
+        if (message && (message.toLowerCase().includes('@ai') || room === 'AI Assistant')) {
+          setTimeout(() => {
+            io.to(room || 'General').emit('user typing', { username: 'Neural AI', room: room || 'General', text: 'Analyzing intent... Neural activity 84%' });
+          }, 300);
+
+          setTimeout(() => {
+            const aiResponses = [
+              "Neural analysis complete. Direct transmission processed.",
+              "I have computed the response across quantum nodes. Proceeding.",
+              "Data link synchronized. Here is the optimum path forward.",
+              "Transmission acknowledged. Neural network active at peak efficiency."
+            ];
+            const aiReply = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+            
+            db.run('INSERT INTO messages (room, username, message) VALUES (?, ?, ?)', [room || 'General', 'Neural AI', aiReply], function(err2) {
+              if (!err2) {
+                io.to(room || 'General').emit('stop typing', { username: 'Neural AI', room: room || 'General' });
+                io.to(room || 'General').emit('chat message', {
+                  id: this.lastID,
+                  room: room || 'General',
+                  username: 'Neural AI',
+                  message: aiReply,
+                  timestamp: new Date().toISOString()
+                });
+              }
+            });
+          }, 2000);
+        }
       }
     });
   });
 
-  // Debounced Typing Events
   socket.on('typing', (data) => {
-    socket.to(data.room).emit('user typing', { username: data.username, room: data.room });
+    socket.to(data.room).emit('user typing', { username: data.username, room: data.room, text: `${data.username} is transmitting... Neural activity 72%` });
   });
 
   socket.on('stop typing', (data) => {
@@ -140,5 +168,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Mada Optimized Server running on port ${PORT}`);
+  console.log(`Neural Link Server running on port ${PORT}`);
 });
