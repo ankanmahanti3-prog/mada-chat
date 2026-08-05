@@ -77,6 +77,30 @@ app.post('/api/login', (req, res) => {
 // Active Users Tracking
 const activeUsers = new Map();
 
+// Context-aware Conversational AI Logic
+function generateAIResponse(userText) {
+  const text = userText.toLowerCase();
+  
+  if (text.includes('hi') || text.includes('hello') || text.includes('hey')) {
+    return "Neural AI link established. Greetings, operator! How can I assist your network today?";
+  }
+  if (text.includes('how are you')) {
+    return "All neural pathways operational at 99.8% efficiency! Quantum latency is optimal. How are your systems performing?";
+  }
+  if (text.includes('who are you') || text.includes('what are you')) {
+    return "I am Neural AI—the core intelligence unit governing this cybernetic terminal. I assist with data processing, code optimization, and real-time chat operations.";
+  }
+  if (text.includes('code') || text.includes('bug') || text.includes('dev')) {
+    return "Scanning developer telemetry... Code parameters looking stable! Need help optimizing functions or debugging sockets?";
+  }
+  if (text.includes('help')) {
+    return "Command directory online: Try asking me questions, typing @AI in any room, or using Ctrl+K to trigger terminal commands!";
+  }
+
+  // Dynamic contextual echo response
+  return `Processing query: "${userText}"...\nNeural analysis complete: Direct link established across active sub-nodes. I am standing by for your next directive.`;
+}
+
 io.on('connection', (socket) => {
   socket.on('user connected', (username) => {
     if (username) {
@@ -101,20 +125,14 @@ io.on('connection', (socket) => {
         const msgData = { id: this.lastID, room: room || 'General', username, message, fileUrl, timestamp: new Date().toISOString() };
         io.to(room || 'General').emit('chat message', msgData);
 
-        // Check if message triggers AI assistant
-        if (message && (message.toLowerCase().includes('@ai') || room === 'AI Assistant')) {
+        // Smart Trigger for AI Assistant Channel or @AI tag
+        if (message && (message.toLowerCase().includes('@ai') || room === 'AI Assistant') && username !== 'Neural AI') {
           setTimeout(() => {
-            io.to(room || 'General').emit('user typing', { username: 'Neural AI', room: room || 'General', text: 'Analyzing intent... Neural activity 84%' });
+            io.to(room || 'General').emit('user typing', { username: 'Neural AI', room: room || 'General', text: 'Analyzing intent... Neural activity 88%' });
           }, 300);
 
           setTimeout(() => {
-            const aiResponses = [
-              "Neural analysis complete. Direct transmission processed.",
-              "I have computed the response across quantum nodes. Proceeding.",
-              "Data link synchronized. Here is the optimum path forward.",
-              "Transmission acknowledged. Neural network active at peak efficiency."
-            ];
-            const aiReply = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+            const aiReply = generateAIResponse(message.replace(/@ai/gi, '').trim());
             
             db.run('INSERT INTO messages (room, username, message) VALUES (?, ?, ?)', [room || 'General', 'Neural AI', aiReply], function(err2) {
               if (!err2) {
@@ -128,7 +146,7 @@ io.on('connection', (socket) => {
                 });
               }
             });
-          }, 2000);
+          }, 1500);
         }
       }
     });
