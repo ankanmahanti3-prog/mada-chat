@@ -113,7 +113,7 @@
     .mobile-menu-btn, .mobile-profile-btn { display: none; background: rgba(255,255,255,0.05); border: var(--card-border); color: var(--accent); padding: 6px 10px; border-radius: 8px; font-size: 16px; cursor: pointer; }
 
     .header-actions { display: flex; gap: 8px; align-items: center; }
-    .header-action-btn { background: transparent; border: none; color: var(--text-muted); font-size: 15px; cursor: pointer; transition: 0.2s; }
+    .header-action-btn { background: transparent; border: none; color: var(--text-muted); font-size: 15px; cursor: pointer; transition: 0.2s; padding: 2px; }
     .header-action-btn:hover { color: #fff; transform: scale(1.1); }
 
     .theme-selector { display: flex; gap: 5px; align-items: center; background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 20px; border: var(--card-border); }
@@ -216,10 +216,11 @@
       .mobile-menu-btn { display: inline-block; }
       .sidebar-overlay.open { display: block; }
       
-      /* Keep Header Clean but Functional */
-      .header-action-btn:not(.search-btn-mobile) { display: none; }
       .theme-selector-desktop { display: none; }
-      .member-count-badge { font-size: 9px; padding: 2px 4px; }
+      .member-count-badge { display: none !important; }
+      .chat-header-title { font-size: 14px; }
+      .header-actions { gap: 6px; }
+      .header-action-btn { font-size: 14px; }
       
       .msg { max-width: 90%; }
       .msg-actions { opacity: 1; }
@@ -294,9 +295,9 @@
       </div>
       
       <div class="header-actions">
-        <button class="header-action-btn search-btn-mobile" title="Search Channel" onclick="document.getElementById('cmd-palette').style.display='block'; document.getElementById('cmd-input').focus();">🔍</button>
-        <button class="header-action-btn" title="Voice Link">📞</button>
-        <button class="header-action-btn" title="Video Stream">📹</button>
+        <button class="header-action-btn" title="Search Channel" onclick="document.getElementById('cmd-palette').style.display='block'; document.getElementById('cmd-input').focus();">🔍</button>
+        <button class="header-action-btn" title="Voice Link" onclick="alert('Establishing encrypted Voice Link stream...')">📞</button>
+        <button class="header-action-btn" title="Video Stream" onclick="alert('Connecting holographic Video Stream...')">📹</button>
         
         <div class="theme-selector theme-selector-desktop">
           <span style="font-size:10px; color:var(--text-muted); margin-right:4px;">ACCENT</span>
