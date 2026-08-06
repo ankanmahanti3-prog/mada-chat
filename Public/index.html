@@ -43,10 +43,8 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     body { background: var(--bg-color); color: var(--text-main); height: 100dvh; overflow: hidden; display: flex; justify-content: center; align-items: center; position: relative; }
 
-    /* Ambient Background Canvas */
     #ambient-canvas { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; opacity: 0.05; }
 
-    /* Main App Workspace Shell */
     #app-workspace {
       z-index: 10;
       display: none;
@@ -88,7 +86,6 @@
     .room-item:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
     .room-item.active { background: var(--accent-light); color: #fff; font-weight: 600; border: 1px solid var(--accent-glow); }
 
-    /* Users List */
     .user-item { padding: 8px 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-muted); margin-bottom: 4px; cursor: pointer; transition: 0.2s; }
     .user-item:hover { background: rgba(255,255,255,0.04); color: #fff; }
     .user-info-left { display: flex; align-items: center; gap: 8px; }
@@ -96,13 +93,11 @@
     .neural-line::after { content: ''; position: absolute; top: -3px; left: 0; width: 8px; height: 8px; background: var(--cyan); border-radius: 50%; animation: neuralPulse 2s infinite linear; }
     @keyframes neuralPulse { 0% { left: 0%; } 100% { left: 100%; } }
 
-    /* Diagnostics Panel */
     .diagnostics-panel { background: rgba(0,0,0,0.4); border: var(--card-border); border-radius: 14px; padding: 12px; margin-top: auto; font-size: 11px; }
     .diag-title { color: var(--cyan); font-weight: 600; display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
     .diag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; color: var(--text-muted); }
     .diag-val { color: #fff; font-family: monospace; text-align: right; }
 
-    /* Avatar Glow */
     .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-light); border: 1px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; color: var(--accent); position: relative; flex-shrink: 0; }
     .avatar.speaking { animation: avatarGlow 1.2s infinite ease-in-out; }
     @keyframes avatarGlow { 0% { box-shadow: 0 0 0 0 var(--accent-glow); } 50% { box-shadow: 0 0 15px 5px var(--accent-glow); } 100% { box-shadow: 0 0 0 0 var(--accent-glow); } }
@@ -112,23 +107,21 @@
     .chat-header { padding: 14px 20px; background: rgba(0,0,0,0.25); border-bottom: var(--card-border); display: flex; justify-content: space-between; align-items: center; }
     .chat-header-title { font-size: 16px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 10px; }
     
-    .mobile-menu-btn { display: none; background: rgba(255,255,255,0.05); border: var(--card-border); color: var(--accent); padding: 6px 12px; border-radius: 8px; font-size: 18px; cursor: pointer; }
+    .mobile-menu-btn, .mobile-profile-btn { display: none; background: rgba(255,255,255,0.05); border: var(--card-border); color: var(--accent); padding: 6px 10px; border-radius: 8px; font-size: 16px; cursor: pointer; }
 
     .header-actions { display: flex; gap: 10px; align-items: center; }
     .theme-selector { display: flex; gap: 6px; align-items: center; background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 20px; border: var(--card-border); }
     .theme-dot { width: 14px; height: 14px; border-radius: 50%; cursor: pointer; transition: 0.2s; }
     .theme-dot:hover { transform: scale(1.25); }
 
-    /* Pinned Message Bar */
     .pinned-bar { padding: 8px 16px; background: rgba(187, 134, 252, 0.08); border-bottom: var(--card-border); font-size: 12px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
 
-    /* Message Bubbles Area */
     #messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 18px; scroll-behavior: smooth; }
     .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); text-align: center; }
     .neural-graphic { width: 80px; height: 80px; border-radius: 50%; border: 2px stroke var(--accent); border-top-color: transparent; animation: spin 4s infinite linear; margin-bottom: 16px; position: relative; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-    /* Improved Bubble Physics & Shadows */
+    /* Bubble Styles */
     .msg { max-width: 78%; padding: 14px 20px; border-radius: 22px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.06); position: relative; animation: messageSlide 0.15s cubic-bezier(0.1, 0.9, 0.2, 1); box-shadow: 0 8px 32px rgba(0,0,0,0.3); transition: transform 0.2s ease, border-color 0.2s ease; }
     .msg:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); box-shadow: 0 12px 36px rgba(0,0,0,0.4); }
     @keyframes messageSlide { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
@@ -136,11 +129,9 @@
     .msg.own { align-self: flex-end; background: var(--accent-light); border-color: var(--accent-glow); border-bottom-right-radius: 6px; }
     .msg:not(.own) { border-bottom-left-radius: 6px; }
     
-    /* Distinct AI Message Styling */
     .msg.ai-msg { border-left: 3px solid var(--cyan); background: rgba(3, 218, 198, 0.06); }
     .ai-badge { display: inline-block; background: var(--cyan); color: #000; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; margin-left: 6px; text-transform: uppercase; }
     
-    /* Live Equalizer Waveform for AI */
     .ai-waveform { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; margin-left: 8px; vertical-align: middle; }
     .ai-waveform span { width: 2px; height: 100%; background: var(--cyan); animation: wave 1s infinite ease-in-out; }
     .ai-waveform span:nth-child(2) { animation-delay: 0.2s; }
@@ -153,31 +144,23 @@
     .msg img { max-width: 100%; border-radius: 12px; margin-top: 8px; display: block; }
     .msg .time { font-size: 10px; color: var(--text-muted); text-align: right; margin-top: 6px; }
 
-    /* Emoji Reactions Bar */
-    .reactions-bar { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
-    .reaction-pill { background: rgba(0,0,0,0.4); border: var(--card-border); border-radius: 12px; padding: 2px 8px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: 0.2s; }
-    .reaction-pill:hover { border-color: var(--accent); transform: scale(1.05); }
-
-    /* Quick AI Action Buttons */
     .ai-suggestions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
     .sug-btn { background: rgba(3, 218, 198, 0.12); border: 1px solid rgba(3, 218, 198, 0.3); color: var(--cyan); padding: 4px 10px; border-radius: 12px; font-size: 11px; cursor: pointer; transition: 0.2s; }
     .sug-btn:hover { background: var(--cyan); color: #000; font-weight: 600; }
 
-    /* AI Toolkit Bar */
     .ai-toolbar { display: flex; gap: 10px; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px; }
     .ai-tool-btn { background: transparent; border: none; color: var(--cyan); font-size: 11px; cursor: pointer; opacity: 0.7; transition: 0.2s; }
     .ai-tool-btn:hover { opacity: 1; text-shadow: 0 0 8px var(--cyan); }
 
-    /* Message Actions */
+    /* Message Actions Bar (Desktop Hover vs Mobile Permanent) */
     .msg-actions { position: absolute; top: -10px; right: 12px; opacity: 0; transition: 0.2s; display: flex; gap: 6px; background: rgba(10,10,15,0.9); backdrop-filter: blur(8px); padding: 4px 8px; border-radius: 12px; border: var(--card-border); }
     .msg:hover .msg-actions { opacity: 1; }
-    .act-btn { cursor: pointer; font-size: 12px; opacity: 0.7; }
+    .act-btn { cursor: pointer; font-size: 12px; opacity: 0.8; }
     .act-btn:hover { opacity: 1; transform: scale(1.15); }
 
-    /* AI Presence Indicator */
     .ai-presence { height: 22px; padding: 0 20px; font-size: 11px; color: var(--cyan); display: flex; align-items: center; gap: 8px; font-style: italic; }
 
-    /* Input Control Panel */
+    /* Input Bar */
     .chat-input-container { padding: 14px 18px; background: rgba(0,0,0,0.3); border-top: var(--card-border); display: flex; gap: 8px; align-items: center; width: 100%; }
     .input-wrapper { flex: 1; display: flex; align-items: center; background: rgba(0,0,0,0.45); border: var(--card-border); border-radius: 18px; padding: 4px 10px; transition: 0.3s; min-width: 0; }
     .input-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
@@ -192,7 +175,7 @@
     .send-btn:hover { box-shadow: 0 0 20px var(--accent-glow); transform: translateY(-1px); }
 
     /* Right User Profile Drawer */
-    .profile-drawer { width: 280px; background: rgba(0,0,0,0.4); border-left: var(--card-border); padding: 20px; display: flex; flex-direction: column; align-items: center; transition: 0.3s ease; flex-shrink: 0; }
+    .profile-drawer { width: 280px; background: rgba(0,0,0,0.4); border-left: var(--card-border); padding: 20px; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s ease; flex-shrink: 0; z-index: 30; }
     .profile-avatar { width: 72px; height: 72px; border-radius: 50%; background: var(--accent-light); border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); margin-bottom: 12px; }
     .profile-name { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 4px; }
     .profile-status { font-size: 11px; color: var(--green); margin-bottom: 20px; display: flex; align-items: center; gap: 6px; }
@@ -202,23 +185,23 @@
     .stat-label { color: var(--text-muted); }
     .stat-val { color: #fff; font-weight: 600; }
 
-    /* Command Palette */
+    /* Command Palette & Emoji Picker */
     #cmd-palette { display: none; position: absolute; top: 15%; left: 50%; transform: translateX(-50%); width: 90%; max-width: 520px; background: rgba(10, 10, 15, 0.95); border: 1px solid var(--accent); border-radius: 18px; padding: 20px; box-shadow: 0 0 40px var(--accent-glow); z-index: 100; backdrop-filter: blur(25px); }
     #cmd-input { width: 100%; padding: 14px; background: rgba(255,255,255,0.05); border: var(--card-border); color: #fff; border-radius: 10px; outline: none; font-size: 16px; margin-bottom: 12px; }
     .cmd-list { list-style: none; max-height: 200px; overflow-y: auto; }
     .cmd-item { padding: 10px 14px; border-radius: 8px; cursor: pointer; color: var(--text-muted); font-size: 13px; display: flex; justify-content: space-between; }
     .cmd-item:hover { background: var(--accent-light); color: #fff; }
 
-    /* Emoji Picker */
     .emoji-picker { display: none; position: absolute; bottom: 70px; right: 15px; background: rgba(10, 10, 15, 0.95); border: var(--card-border); border-radius: 14px; padding: 12px; grid-template-columns: repeat(5, 1fr); gap: 10px; z-index: 100; backdrop-filter: blur(20px); }
     .emoji-picker span { font-size: 22px; cursor: pointer; text-align: center; }
 
-    /* Sidebar Overlay */
     .sidebar-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 25; }
 
-    /* Responsive Controls */
-    @media (max-width: 1024px) {
-      .profile-drawer { display: none; }
+    /* Touch / Mobile Overrides */
+    @media (max-width: 900px) {
+      .profile-drawer { position: absolute; right: 0; top: 0; height: 100%; width: 280px; transform: translateX(100%); background: rgba(10,10,15,0.98); backdrop-filter: blur(25px); }
+      .profile-drawer.open { transform: translateX(0); }
+      .mobile-profile-btn { display: inline-block; }
     }
 
     @media (max-width: 600px) {
@@ -228,6 +211,7 @@
       .mobile-menu-btn { display: inline-block; }
       .sidebar-overlay.open { display: block; }
       .msg { max-width: 90%; }
+      .msg-actions { opacity: 1; } /* Force edit/delete buttons visible on mobile touch screens */
       .send-btn-text { display: none; }
       .send-btn::after { content: '➤'; font-size: 14px; }
       .send-btn { padding: 10px 14px; border-radius: 12px; }
@@ -250,7 +234,7 @@
 
 <!-- Main Workspace -->
 <div id="app-workspace">
-  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileDrawers()"></div>
   
   <!-- Left Navigation Sidebar -->
   <div class="sidebar" id="sidebar">
@@ -297,6 +281,7 @@
           <div class="theme-dot" style="background:#ff9100;" onclick="setTheme('orange')"></div>
           <div class="theme-dot" style="background:#ff1744;" onclick="setTheme('red')"></div>
         </div>
+        <button class="mobile-profile-btn" onclick="toggleMobileProfile()">👤</button>
       </div>
     </div>
 
@@ -314,7 +299,7 @@
       <input type="file" id="file-input" style="display:none;" onchange="handleFileUpload(event)">
       <div class="input-wrapper">
         <button type="button" class="icon-btn" title="Attach Data" onclick="document.getElementById('file-input').click()">+</button>
-        <input type="text" id="msg-input" placeholder="Transmit thoughts... Press Ctrl+K for commands" autocomplete="off" oninput="handleTyping()">
+        <input type="text" id="msg-input" placeholder="Transmit thoughts..." autocomplete="off" oninput="handleTyping()">
         <button type="button" class="icon-btn" title="Voice-to-Text" onclick="toggleSpeechRecognition()">🎤</button>
         <button type="button" class="icon-btn" id="mic-btn" title="Audio Stream" onclick="toggleRecordAudio()">🎙️</button>
         <button type="button" class="icon-btn" title="Emojis" onclick="toggleEmojiPicker()">😊</button>
@@ -454,12 +439,23 @@
     if (el) el.classList.add('active');
     document.getElementById('messages').innerHTML = '';
     socket.emit('join room', currentRoom);
-    if (window.innerWidth <= 600) toggleMobileSidebar();
+    closeMobileDrawers();
   }
 
   function toggleMobileSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('sidebar-overlay').classList.toggle('open');
+  }
+
+  function toggleMobileProfile() {
+    document.getElementById('profile-drawer').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('open');
+  }
+
+  function closeMobileDrawers() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('profile-drawer').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('open');
   }
 
   socket.on('online users update', (users) => {
@@ -484,6 +480,7 @@
   function openProfile(user) {
     document.getElementById('drawer-name').innerText = user;
     document.getElementById('drawer-avatar').innerText = user.substring(0, 2).toUpperCase();
+    if (window.innerWidth <= 900) toggleMobileProfile();
   }
 
   socket.on('chat history', (history) => {
@@ -554,7 +551,6 @@
       }
     }
 
-    // AI Suggestions Bar
     if (isAI) {
       contentHtml += `
         <div class="ai-suggestions">
@@ -744,7 +740,7 @@
     document.getElementById('cmd-palette').style.display = 'none';
   }
 
-  /* Ambient Particles Canvas */
+  /* Ambient Canvas */
   const canvas = document.getElementById('ambient-canvas');
   const ctx = canvas.getContext('2d');
   function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
