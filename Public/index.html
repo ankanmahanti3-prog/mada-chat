@@ -43,7 +43,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     body { background: var(--bg-color); color: var(--text-main); height: 100dvh; overflow: hidden; display: flex; justify-content: center; align-items: center; position: relative; }
 
-    /* Interactive Mesh Canvas */
     #ambient-canvas { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; opacity: 0.06; }
 
     #app-workspace {
@@ -203,7 +202,7 @@
 
     .sidebar-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 25; }
 
-    /* Clean Mobile Overrides */
+    /* Clean Mobile Responsive Design */
     @media (max-width: 900px) {
       .profile-drawer { position: absolute; right: 0; top: 0; height: 100%; width: 280px; transform: translateX(100%); background: rgba(10,10,15,0.98); backdrop-filter: blur(25px); }
       .profile-drawer.open { transform: translateX(0); }
@@ -217,8 +216,10 @@
       .mobile-menu-btn { display: inline-block; }
       .sidebar-overlay.open { display: block; }
       
-      /* Hide Header Clutter on Phones */
-      .header-action-btn, .theme-selector, .member-count-badge { display: none !important; }
+      /* Keep Header Clean but Functional */
+      .header-action-btn:not(.search-btn-mobile) { display: none; }
+      .theme-selector-desktop { display: none; }
+      .member-count-badge { font-size: 9px; padding: 2px 4px; }
       
       .msg { max-width: 90%; }
       .msg-actions { opacity: 1; }
@@ -261,6 +262,15 @@
       <li class="room-item" onclick="switchRoom('Gaming', this)">🎮 Gaming</li>
     </ul>
 
+    <h3>Accent Theme</h3>
+    <div class="theme-selector" style="margin-bottom:12px; justify-content:space-around;">
+      <div class="theme-dot" style="background:#bb86fc;" onclick="setTheme('purple')"></div>
+      <div class="theme-dot" style="background:#03dac6;" onclick="setTheme('cyan')"></div>
+      <div class="theme-dot" style="background:#00e676;" onclick="setTheme('green')"></div>
+      <div class="theme-dot" style="background:#ff9100;" onclick="setTheme('orange')"></div>
+      <div class="theme-dot" style="background:#ff1744;" onclick="setTheme('red')"></div>
+    </div>
+
     <h3>Active Links</h3>
     <div id="online-users-list"></div>
 
@@ -284,10 +294,11 @@
       </div>
       
       <div class="header-actions">
-        <button class="header-action-btn" title="Search Channel">🔍</button>
+        <button class="header-action-btn search-btn-mobile" title="Search Channel" onclick="document.getElementById('cmd-palette').style.display='block'; document.getElementById('cmd-input').focus();">🔍</button>
         <button class="header-action-btn" title="Voice Link">📞</button>
         <button class="header-action-btn" title="Video Stream">📹</button>
-        <div class="theme-selector">
+        
+        <div class="theme-selector theme-selector-desktop">
           <span style="font-size:10px; color:var(--text-muted); margin-right:4px;">ACCENT</span>
           <div class="theme-dot" style="background:#bb86fc;" onclick="setTheme('purple')"></div>
           <div class="theme-dot" style="background:#03dac6;" onclick="setTheme('cyan')"></div>
@@ -295,6 +306,7 @@
           <div class="theme-dot" style="background:#ff9100;" onclick="setTheme('orange')"></div>
           <div class="theme-dot" style="background:#ff1744;" onclick="setTheme('red')"></div>
         </div>
+
         <button class="mobile-profile-btn" onclick="toggleMobileProfile()">👤</button>
       </div>
     </div>
@@ -335,6 +347,17 @@
     <div class="profile-avatar" id="drawer-avatar">N</div>
     <div class="profile-name" id="drawer-name">User Node</div>
     <div class="profile-status">● Neural Link Active</div>
+
+    <div style="width:100%; margin-bottom:16px;">
+      <span style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:8px; text-transform:uppercase;">Accent Theme</span>
+      <div class="theme-selector" style="justify-content:space-around;">
+        <div class="theme-dot" style="background:#bb86fc;" onclick="setTheme('purple')"></div>
+        <div class="theme-dot" style="background:#03dac6;" onclick="setTheme('cyan')"></div>
+        <div class="theme-dot" style="background:#00e676;" onclick="setTheme('green')"></div>
+        <div class="theme-dot" style="background:#ff9100;" onclick="setTheme('orange')"></div>
+        <div class="theme-dot" style="background:#ff1744;" onclick="setTheme('red')"></div>
+      </div>
+    </div>
 
     <div class="profile-stats-grid">
       <div class="stat-row"><span class="stat-label">Neural Status</span><span class="stat-val" style="color:var(--green)">Online</span></div>
