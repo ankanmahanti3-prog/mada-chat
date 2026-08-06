@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>NEURAL LINK | Cybernetic Chat 2045</title>
+  <meta name="theme-color" content="#08080c">
+  <title>NEURAL LINK v2.0 | Cybernetic Terminal</title>
   <style>
     :root {
       --bg-color: #08080c;
-      --card-bg: rgba(20, 20, 30, 0.65);
+      --card-bg: rgba(18, 18, 28, 0.7);
       --card-border: 1px solid rgba(255, 255, 255, 0.08);
       --accent: #bb86fc;
       --accent-glow: rgba(187, 134, 252, 0.35);
@@ -42,22 +43,22 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     body { background: var(--bg-color); color: var(--text-main); height: 100dvh; overflow: hidden; display: flex; justify-content: center; align-items: center; position: relative; }
 
-    /* Ambient Canvas */
-    #ambient-canvas { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; opacity: 0.04; }
+    /* Ambient Background Canvas */
+    #ambient-canvas { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; opacity: 0.05; }
 
-    /* UI Shell */
+    /* Main App Workspace Shell */
     #app-workspace {
       z-index: 10;
       display: none;
-      width: 96%;
-      max-width: 1280px;
-      height: 92dvh;
+      width: 98%;
+      max-width: 1440px;
+      height: 94dvh;
       background: var(--card-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 20px;
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border-radius: 24px;
       border: var(--card-border);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
       overflow: hidden;
       flex-direction: row;
       position: relative;
@@ -75,66 +76,95 @@
     .auth-btn:hover { box-shadow: 0 0 20px var(--accent-glow); transform: translateY(-2px); }
     .switch-btn { background: transparent; color: var(--text-muted); margin-top: 16px; font-size: 13px; cursor: pointer; text-decoration: underline; }
 
-    /* Sidebar */
-    .sidebar { width: 300px; background: rgba(0,0,0,0.4); border-right: var(--card-border); display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; z-index: 30; transition: transform 0.3s ease; }
+    /* Left Sidebar */
+    .sidebar { width: 280px; background: rgba(0,0,0,0.35); border-right: var(--card-border); display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; z-index: 30; transition: transform 0.3s ease; }
     .brand-header { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
-    .brand-logo { width: 32px; height: 32px; background: var(--accent-light); border: 1px solid var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
-    .brand-title { font-size: 16px; font-weight: 600; letter-spacing: 2px; color: #fff; }
+    .brand-logo { width: 34px; height: 34px; background: var(--accent-light); border: 1px solid var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
+    .brand-title { font-size: 15px; font-weight: 700; letter-spacing: 2px; color: #fff; }
 
     .sidebar h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin: 16px 0 10px 0; }
     .room-list { list-style: none; overflow-y: auto; }
     .room-item { padding: 10px 14px; margin-bottom: 4px; border-radius: 12px; cursor: pointer; color: var(--text-muted); font-size: 14px; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease; }
-    .room-item:hover { color: #fff; background: rgba(255, 255, 255, 0.04); }
+    .room-item:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
     .room-item.active { background: var(--accent-light); color: #fff; font-weight: 600; border: 1px solid var(--accent-glow); }
 
-    /* Users list */
-    .user-item { padding: 8px 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-muted); margin-bottom: 4px; cursor: pointer; }
-    .user-item:hover { background: rgba(255,255,255,0.03); color: #fff; }
+    /* Users List */
+    .user-item { padding: 8px 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-muted); margin-bottom: 4px; cursor: pointer; transition: 0.2s; }
+    .user-item:hover { background: rgba(255,255,255,0.04); color: #fff; }
     .user-info-left { display: flex; align-items: center; gap: 8px; }
     .neural-line { flex: 1; height: 2px; margin: 0 8px; background: linear-gradient(90deg, var(--accent) 0%, var(--cyan) 100%); position: relative; opacity: 0.6; }
     .neural-line::after { content: ''; position: absolute; top: -3px; left: 0; width: 8px; height: 8px; background: var(--cyan); border-radius: 50%; animation: neuralPulse 2s infinite linear; }
     @keyframes neuralPulse { 0% { left: 0%; } 100% { left: 100%; } }
 
     /* Diagnostics Panel */
-    .diagnostics-panel { background: rgba(0,0,0,0.4); border: var(--card-border); border-radius: 12px; padding: 12px; margin-top: auto; font-size: 11px; }
+    .diagnostics-panel { background: rgba(0,0,0,0.4); border: var(--card-border); border-radius: 14px; padding: 12px; margin-top: auto; font-size: 11px; }
     .diag-title { color: var(--cyan); font-weight: 600; display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
     .diag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; color: var(--text-muted); }
     .diag-val { color: #fff; font-family: monospace; text-align: right; }
 
     /* Avatar Glow */
-    .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-light); border: 1px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; color: var(--accent); position: relative; }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-light); border: 1px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; color: var(--accent); position: relative; flex-shrink: 0; }
     .avatar.speaking { animation: avatarGlow 1.2s infinite ease-in-out; }
     @keyframes avatarGlow { 0% { box-shadow: 0 0 0 0 var(--accent-glow); } 50% { box-shadow: 0 0 15px 5px var(--accent-glow); } 100% { box-shadow: 0 0 0 0 var(--accent-glow); } }
 
     /* Main Chat Interface */
     .chat-area { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.15); position: relative; width: 100%; min-width: 0; }
-    .chat-header { padding: 12px 16px; background: rgba(0,0,0,0.2); border-bottom: var(--card-border); display: flex; justify-content: space-between; align-items: center; }
-    .chat-header-title { font-size: 16px; font-weight: 500; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .chat-header { padding: 14px 20px; background: rgba(0,0,0,0.25); border-bottom: var(--card-border); display: flex; justify-content: space-between; align-items: center; }
+    .chat-header-title { font-size: 16px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 10px; }
     
     .mobile-menu-btn { display: none; background: rgba(255,255,255,0.05); border: var(--card-border); color: var(--accent); padding: 6px 12px; border-radius: 8px; font-size: 18px; cursor: pointer; }
 
+    .header-actions { display: flex; gap: 10px; align-items: center; }
     .theme-selector { display: flex; gap: 6px; align-items: center; background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 20px; border: var(--card-border); }
     .theme-dot { width: 14px; height: 14px; border-radius: 50%; cursor: pointer; transition: 0.2s; }
-    .theme-dot:hover { transform: scale(1.2); }
+    .theme-dot:hover { transform: scale(1.25); }
 
-    /* Messages */
-    #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; scroll-behavior: smooth; }
+    /* Pinned Message Bar */
+    .pinned-bar { padding: 8px 16px; background: rgba(187, 134, 252, 0.08); border-bottom: var(--card-border); font-size: 12px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+
+    /* Message Bubbles Area */
+    #messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 18px; scroll-behavior: smooth; }
     .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); text-align: center; }
-    .neural-graphic { width: 70px; height: 70px; border-radius: 50%; border: 2px stroke var(--accent); border-top-color: transparent; animation: spin 4s infinite linear; margin-bottom: 16px; position: relative; }
+    .neural-graphic { width: 80px; height: 80px; border-radius: 50%; border: 2px stroke var(--accent); border-top-color: transparent; animation: spin 4s infinite linear; margin-bottom: 16px; position: relative; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-    /* Bubble Styles */
-    .msg { max-width: 80%; padding: 12px 16px; border-radius: 20px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.05); position: relative; animation: messageSlide 0.15s cubic-bezier(0.1, 0.9, 0.2, 1); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+    /* Improved Bubble Physics & Shadows */
+    .msg { max-width: 78%; padding: 14px 20px; border-radius: 22px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.06); position: relative; animation: messageSlide 0.15s cubic-bezier(0.1, 0.9, 0.2, 1); box-shadow: 0 8px 32px rgba(0,0,0,0.3); transition: transform 0.2s ease, border-color 0.2s ease; }
+    .msg:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); box-shadow: 0 12px 36px rgba(0,0,0,0.4); }
     @keyframes messageSlide { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    
     .msg.own { align-self: flex-end; background: var(--accent-light); border-color: var(--accent-glow); border-bottom-right-radius: 6px; }
     .msg:not(.own) { border-bottom-left-radius: 6px; }
-    .msg .author { font-size: 11px; color: var(--accent); font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .msg .msg-text { font-size: 14px; line-height: 1.5; color: #f0f0f5; word-break: break-word; }
+    
+    /* Distinct AI Message Styling */
+    .msg.ai-msg { border-left: 3px solid var(--cyan); background: rgba(3, 218, 198, 0.06); }
+    .ai-badge { display: inline-block; background: var(--cyan); color: #000; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; margin-left: 6px; text-transform: uppercase; }
+    
+    /* Live Equalizer Waveform for AI */
+    .ai-waveform { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; margin-left: 8px; vertical-align: middle; }
+    .ai-waveform span { width: 2px; height: 100%; background: var(--cyan); animation: wave 1s infinite ease-in-out; }
+    .ai-waveform span:nth-child(2) { animation-delay: 0.2s; }
+    .ai-waveform span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes wave { 0%, 100% { height: 3px; } 50% { height: 12px; } }
+
+    .msg .author { font-size: 11px; color: var(--accent); font-weight: 700; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between; }
+    .msg .msg-text { font-size: 14.5px; line-height: 1.55; color: #f0f0f5; word-break: break-word; font-weight: 400; }
+    .msg .msg-text code { background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 6px; font-family: monospace; color: var(--cyan); font-size: 13px; }
     .msg img { max-width: 100%; border-radius: 12px; margin-top: 8px; display: block; }
     .msg .time { font-size: 10px; color: var(--text-muted); text-align: right; margin-top: 6px; }
 
+    /* Emoji Reactions Bar */
+    .reactions-bar { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+    .reaction-pill { background: rgba(0,0,0,0.4); border: var(--card-border); border-radius: 12px; padding: 2px 8px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: 0.2s; }
+    .reaction-pill:hover { border-color: var(--accent); transform: scale(1.05); }
+
+    /* Quick AI Action Buttons */
+    .ai-suggestions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .sug-btn { background: rgba(3, 218, 198, 0.12); border: 1px solid rgba(3, 218, 198, 0.3); color: var(--cyan); padding: 4px 10px; border-radius: 12px; font-size: 11px; cursor: pointer; transition: 0.2s; }
+    .sug-btn:hover { background: var(--cyan); color: #000; font-weight: 600; }
+
     /* AI Toolkit Bar */
-    .ai-toolbar { display: flex; gap: 8px; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px; }
+    .ai-toolbar { display: flex; gap: 10px; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px; }
     .ai-tool-btn { background: transparent; border: none; color: var(--cyan); font-size: 11px; cursor: pointer; opacity: 0.7; transition: 0.2s; }
     .ai-tool-btn:hover { opacity: 1; text-shadow: 0 0 8px var(--cyan); }
 
@@ -145,21 +175,32 @@
     .act-btn:hover { opacity: 1; transform: scale(1.15); }
 
     /* AI Presence Indicator */
-    .ai-presence { height: 22px; padding: 0 16px; font-size: 11px; color: var(--cyan); display: flex; align-items: center; gap: 8px; font-style: italic; }
+    .ai-presence { height: 22px; padding: 0 20px; font-size: 11px; color: var(--cyan); display: flex; align-items: center; gap: 8px; font-style: italic; }
 
-    /* Controls Input Bar - Responsive Layout */
-    .chat-input-container { padding: 10px 12px; background: rgba(0,0,0,0.25); border-top: var(--card-border); display: flex; gap: 6px; align-items: center; width: 100%; }
-    .input-wrapper { flex: 1; display: flex; align-items: center; background: rgba(0,0,0,0.4); border: var(--card-border); border-radius: 16px; padding: 2px 6px; transition: 0.3s; min-width: 0; }
-    .input-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 15px var(--accent-glow); }
-    .input-wrapper input { flex: 1; padding: 8px 6px; background: transparent; border: none; color: #fff; outline: none; font-size: 14px; min-width: 0; }
+    /* Input Control Panel */
+    .chat-input-container { padding: 14px 18px; background: rgba(0,0,0,0.3); border-top: var(--card-border); display: flex; gap: 8px; align-items: center; width: 100%; }
+    .input-wrapper { flex: 1; display: flex; align-items: center; background: rgba(0,0,0,0.45); border: var(--card-border); border-radius: 18px; padding: 4px 10px; transition: 0.3s; min-width: 0; }
+    .input-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
+    .input-wrapper input { flex: 1; padding: 10px 8px; background: transparent; border: none; color: #fff; outline: none; font-size: 14.5px; min-width: 0; }
     
-    .icon-btn { background: transparent; border: none; color: var(--text-muted); padding: 4px 6px; cursor: pointer; font-size: 16px; transition: 0.2s; flex-shrink: 0; }
+    .icon-btn { background: transparent; border: none; color: var(--text-muted); padding: 6px; cursor: pointer; font-size: 16px; transition: 0.2s; flex-shrink: 0; }
     .icon-btn:hover { color: #fff; }
     .icon-btn.recording { color: #ff1744; animation: recPulse 1s infinite; }
     @keyframes recPulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-    .send-btn { background: var(--accent); border: none; color: #000; padding: 10px 16px; font-weight: bold; border-radius: 14px; cursor: pointer; font-size: 12px; letter-spacing: 1px; transition: 0.3s; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
-    .send-btn:hover { box-shadow: 0 0 15px var(--accent-glow); transform: translateY(-1px); }
+    .send-btn { background: var(--accent); border: none; color: #000; padding: 12px 20px; font-weight: bold; border-radius: 14px; cursor: pointer; font-size: 12.5px; letter-spacing: 1px; transition: 0.3s; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
+    .send-btn:hover { box-shadow: 0 0 20px var(--accent-glow); transform: translateY(-1px); }
+
+    /* Right User Profile Drawer */
+    .profile-drawer { width: 280px; background: rgba(0,0,0,0.4); border-left: var(--card-border); padding: 20px; display: flex; flex-direction: column; align-items: center; transition: 0.3s ease; flex-shrink: 0; }
+    .profile-avatar { width: 72px; height: 72px; border-radius: 50%; background: var(--accent-light); border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); margin-bottom: 12px; }
+    .profile-name { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .profile-status { font-size: 11px; color: var(--green); margin-bottom: 20px; display: flex; align-items: center; gap: 6px; }
+    
+    .profile-stats-grid { width: 100%; display: flex; flex-direction: column; gap: 10px; font-size: 12px; }
+    .stat-row { display: flex; justify-content: space-between; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 10px; border: var(--card-border); }
+    .stat-label { color: var(--text-muted); }
+    .stat-val { color: #fff; font-weight: 600; }
 
     /* Command Palette */
     #cmd-palette { display: none; position: absolute; top: 15%; left: 50%; transform: translateX(-50%); width: 90%; max-width: 520px; background: rgba(10, 10, 15, 0.95); border: 1px solid var(--accent); border-radius: 18px; padding: 20px; box-shadow: 0 0 40px var(--accent-glow); z-index: 100; backdrop-filter: blur(25px); }
@@ -169,24 +210,27 @@
     .cmd-item:hover { background: var(--accent-light); color: #fff; }
 
     /* Emoji Picker */
-    .emoji-picker { display: none; position: absolute; bottom: 65px; right: 15px; background: rgba(10, 10, 15, 0.95); border: var(--card-border); border-radius: 14px; padding: 12px; grid-template-columns: repeat(5, 1fr); gap: 10px; z-index: 100; backdrop-filter: blur(20px); }
+    .emoji-picker { display: none; position: absolute; bottom: 70px; right: 15px; background: rgba(10, 10, 15, 0.95); border: var(--card-border); border-radius: 14px; padding: 12px; grid-template-columns: repeat(5, 1fr); gap: 10px; z-index: 100; backdrop-filter: blur(20px); }
     .emoji-picker span { font-size: 22px; cursor: pointer; text-align: center; }
 
     /* Sidebar Overlay */
     .sidebar-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 25; }
 
-    /* Mobile Fine-Tuning */
+    /* Responsive Controls */
+    @media (max-width: 1024px) {
+      .profile-drawer { display: none; }
+    }
+
     @media (max-width: 600px) {
       #app-workspace { width: 100%; height: 100dvh; border-radius: 0; border: none; }
       .sidebar { position: absolute; left: 0; top: 0; height: 100%; width: 280px; transform: translateX(-100%); background: rgba(10,10,15,0.98); backdrop-filter: blur(25px); }
       .sidebar.open { transform: translateX(0); }
       .mobile-menu-btn { display: inline-block; }
       .sidebar-overlay.open { display: block; }
-      .msg { max-width: 88%; }
+      .msg { max-width: 90%; }
       .send-btn-text { display: none; }
       .send-btn::after { content: '➤'; font-size: 14px; }
-      .send-btn { padding: 10px 12px; border-radius: 12px; }
-      .icon-btn { padding: 4px; font-size: 15px; }
+      .send-btn { padding: 10px 14px; border-radius: 12px; }
     }
   </style>
 </head>
@@ -208,6 +252,7 @@
 <div id="app-workspace">
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
   
+  <!-- Left Navigation Sidebar -->
   <div class="sidebar" id="sidebar">
     <div class="brand-header">
       <div class="brand-logo">N</div>
@@ -228,13 +273,14 @@
     <div class="diagnostics-panel">
       <div class="diag-title">● Neural Link Stable</div>
       <div class="diag-grid">
-        <span>Latency:</span><span class="diag-val" id="diag-latency">14 ms</span>
+        <span>Latency:</span><span class="diag-val" id="diag-latency">12 ms</span>
         <span>Encryption:</span><span class="diag-val">AES-256</span>
         <span>Packet Loss:</span><span class="diag-val">0%</span>
       </div>
     </div>
   </div>
 
+  <!-- Central Chat Area -->
   <div class="chat-area">
     <div class="chat-header">
       <div class="chat-header-title">
@@ -242,24 +288,33 @@
         <span id="room-header"># General</span>
       </div>
       
-      <div class="theme-selector">
-        <span style="font-size:10px; color:var(--text-muted); margin-right:4px;">ACCENT</span>
-        <div class="theme-dot" style="background:#bb86fc;" onclick="setTheme('purple')"></div>
-        <div class="theme-dot" style="background:#03dac6;" onclick="setTheme('cyan')"></div>
-        <div class="theme-dot" style="background:#00e676;" onclick="setTheme('green')"></div>
-        <div class="theme-dot" style="background:#ff9100;" onclick="setTheme('orange')"></div>
-        <div class="theme-dot" style="background:#ff1744;" onclick="setTheme('red')"></div>
+      <div class="header-actions">
+        <div class="theme-selector">
+          <span style="font-size:10px; color:var(--text-muted); margin-right:4px;">ACCENT</span>
+          <div class="theme-dot" style="background:#bb86fc;" onclick="setTheme('purple')"></div>
+          <div class="theme-dot" style="background:#03dac6;" onclick="setTheme('cyan')"></div>
+          <div class="theme-dot" style="background:#00e676;" onclick="setTheme('green')"></div>
+          <div class="theme-dot" style="background:#ff9100;" onclick="setTheme('orange')"></div>
+          <div class="theme-dot" style="background:#ff1744;" onclick="setTheme('red')"></div>
+        </div>
       </div>
+    </div>
+
+    <!-- Pinned Header Banner -->
+    <div class="pinned-bar">
+      <span>📌</span>
+      <span><strong>Pinned Notice:</strong> Neural Link v2.0 update deployed. High-speed quantum responses active.</span>
     </div>
 
     <div id="messages"></div>
     <div class="ai-presence" id="ai-presence"></div>
 
+    <!-- Controls Input Bar -->
     <form class="chat-input-container" onsubmit="sendMessage(event)">
       <input type="file" id="file-input" style="display:none;" onchange="handleFileUpload(event)">
       <div class="input-wrapper">
         <button type="button" class="icon-btn" title="Attach Data" onclick="document.getElementById('file-input').click()">+</button>
-        <input type="text" id="msg-input" placeholder="Transmit thought..." autocomplete="off" oninput="handleTyping()">
+        <input type="text" id="msg-input" placeholder="Transmit thoughts... Press Ctrl+K for commands" autocomplete="off" oninput="handleTyping()">
         <button type="button" class="icon-btn" title="Voice-to-Text" onclick="toggleSpeechRecognition()">🎤</button>
         <button type="button" class="icon-btn" id="mic-btn" title="Audio Stream" onclick="toggleRecordAudio()">🎙️</button>
         <button type="button" class="icon-btn" title="Emojis" onclick="toggleEmojiPicker()">😊</button>
@@ -274,6 +329,21 @@
         <span onclick="addEmoji('❤️')">❤️</span>
       </div>
     </form>
+  </div>
+
+  <!-- Right User Profile Drawer -->
+  <div class="profile-drawer" id="profile-drawer">
+    <div class="profile-avatar" id="drawer-avatar">N</div>
+    <div class="profile-name" id="drawer-name">User Node</div>
+    <div class="profile-status">● Neural Link Active</div>
+
+    <div class="profile-stats-grid">
+      <div class="stat-row"><span class="stat-label">Neural Status</span><span class="stat-val" style="color:var(--green)">Online</span></div>
+      <div class="stat-row"><span class="stat-label">Messages Sent</span><span class="stat-val" id="drawer-msg-count">128</span></div>
+      <div class="stat-row"><span class="stat-label">AI Sync Score</span><span class="stat-val" style="color:var(--cyan)">98.4 / 100</span></div>
+      <div class="stat-row"><span class="stat-label">Favorite Channel</span><span class="stat-val"># General</span></div>
+      <div class="stat-row"><span class="stat-label">Encryption</span><span class="stat-val">AES-256</span></div>
+    </div>
   </div>
 </div>
 
@@ -369,15 +439,11 @@
   function showWorkspace() {
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app-workspace').style.display = 'flex';
+    document.getElementById('drawer-name').innerText = currentUser;
+    document.getElementById('drawer-avatar').innerText = currentUser.substring(0, 2).toUpperCase();
     socket.emit('user connected', currentUser);
     socket.emit('join room', currentRoom);
     playSound('whoosh');
-  }
-
-  function logout() {
-    localStorage.removeItem('mada_user');
-    currentUser = null;
-    location.reload();
   }
 
   function switchRoom(room, el) {
@@ -402,6 +468,7 @@
     users.forEach(u => {
       const div = document.createElement('div');
       div.className = 'user-item';
+      div.onclick = () => openProfile(u);
       div.innerHTML = `
         <div class="user-info-left">
           <div class="avatar ${u === currentUser ? 'speaking' : ''}">${u.substring(0, 2).toUpperCase()}</div>
@@ -413,6 +480,11 @@
       list.appendChild(div);
     });
   });
+
+  function openProfile(user) {
+    document.getElementById('drawer-name').innerText = user;
+    document.getElementById('drawer-avatar').innerText = user.substring(0, 2).toUpperCase();
+  }
 
   socket.on('chat history', (history) => {
     const list = document.getElementById('messages');
@@ -431,7 +503,7 @@
       <div class="empty-state">
         <div class="neural-graphic"></div>
         <h3 style="color:#fff; font-weight:400; margin-bottom:6px;">◉ Neural Link Active</h3>
-        <p>No thoughts transmitted yet. Start the conversation.</p>
+        <p>Waiting for the first transmission...</p>
       </div>
     `;
   }
@@ -447,15 +519,32 @@
     }
   });
 
+  function parseMarkdown(text) {
+    if (!text) return '';
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/`(.*?)`/g, '<code>$1</code>');
+  }
+
   function appendMessage(msg) {
     const list = document.getElementById('messages');
     const div = document.createElement('div');
     const isOwn = msg.username === currentUser;
-    div.className = `msg ${isOwn ? 'own' : ''}`;
+    const isAI = msg.username === 'Neural AI';
+
+    div.className = `msg ${isOwn ? 'own' : ''} ${isAI ? 'ai-msg' : ''}`;
     div.setAttribute('data-id', msg.id);
 
     const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-    let contentHtml = `<div class="author">${msg.username}</div><div class="msg-text">${msg.message || ''}</div>`;
+    
+    let authorHtml = `
+      <div class="author">
+        <span>${msg.username} ${isAI ? '<span class="ai-badge">AI</span><div class="ai-waveform"><span></span><span></span><span></span></div>' : ''}</span>
+      </div>
+    `;
+
+    let contentHtml = authorHtml + `<div class="msg-text">${parseMarkdown(msg.message || '')}</div>`;
     
     if (msg.fileUrl) {
       if (msg.fileUrl.startsWith('data:audio/')) {
@@ -465,10 +554,23 @@
       }
     }
 
+    // AI Suggestions Bar
+    if (isAI) {
+      contentHtml += `
+        <div class="ai-suggestions">
+          <button class="sug-btn" onclick="quickAISuggest('Summarize message')">Summarize</button>
+          <button class="sug-btn" onclick="quickAISuggest('Explain simply')">Explain</button>
+          <button class="sug-btn" onclick="quickAISuggest('Generate code example')">Code</button>
+        </div>
+      `;
+    }
+
     contentHtml += `
       <div class="ai-toolbar">
         <button class="ai-tool-btn" onclick="readAloud(\`${msg.message || ''}\`)">🔊 Read</button>
         <button class="ai-tool-btn" onclick="translateMsg(${msg.id})">🌍 Translate</button>
+        <button class="ai-tool-btn" onclick="addReaction(${msg.id}, '❤️')">❤️</button>
+        <button class="ai-tool-btn" onclick="addReaction(${msg.id}, '🔥')">🔥</button>
       </div>
     `;
 
@@ -481,6 +583,15 @@
     list.appendChild(div);
   }
 
+  function quickAISuggest(promptText) {
+    document.getElementById('msg-input').value = `@AI ${promptText}`;
+    sendMessage();
+  }
+
+  function addReaction(id, emoji) {
+    socket.emit('add reaction', { id, room: currentRoom, emoji });
+  }
+
   function readAloud(text) {
     if ('speechSynthesis' in window && text) {
       const utterance = new SpeechSynthesisUtterance(text);
@@ -491,7 +602,7 @@
   function translateMsg(id) {
     const el = document.querySelector(`[data-id="${id}"] .msg-text`);
     if (el) {
-      el.innerText = "[Neural Translation] " + el.innerText + " (Synced across nodes)";
+      el.innerText = "[Neural Translation] " + el.innerText;
     }
   }
 
@@ -633,16 +744,16 @@
     document.getElementById('cmd-palette').style.display = 'none';
   }
 
-  /* Ambient Particles */
+  /* Ambient Particles Canvas */
   const canvas = document.getElementById('ambient-canvas');
   const ctx = canvas.getContext('2d');
   function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
   window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
 
-  let pArr = Array.from({length: 40}, () => ({
+  let pArr = Array.from({length: 45}, () => ({
     x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-    vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3
+    vx: (Math.random() - 0.5) * 0.35, vy: (Math.random() - 0.5) * 0.35
   }));
 
   function drawAmbient() {

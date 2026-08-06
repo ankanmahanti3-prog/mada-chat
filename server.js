@@ -11,13 +11,13 @@ const Groq = require('groq-sdk');
 const app = express();
 const server = http.createServer(app);
 
-// Initialize Groq AI Client safely using process.env
+// Initialize Groq AI Client safely via environment variable
 const groq = new Groq({ 
   apiKey: process.env.GROQ_API_KEY 
 });
 
 const io = new Server(server, {
-  maxHttpBufferSize: 5 * 1024 * 1024
+  maxHttpBufferSize: 10 * 1024 * 1024
 });
 
 const SECRET_KEY = process.env.SECRET_KEY || 'mada_secret_key_change_in_production';
@@ -40,12 +40,13 @@ db.serialize(() => {
     username TEXT,
     message TEXT,
     fileUrl TEXT,
+    reactions TEXT DEFAULT '{}',
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_messages_room ON messages(room)`);
 });
 
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'Public')));
 
 app.get('/', (req, res) => {
@@ -84,7 +85,7 @@ app.post('/api/login', (req, res) => {
 // Active Users Tracking
 const activeUsers = new Map();
 
-// High-Speed Groq AI Request Function
+// Groq AI Integration
 async function fetchAIResponse(userMessage) {
   try {
     if (!process.env.GROQ_API_KEY) {
@@ -95,13 +96,13 @@ async function fetchAIResponse(userMessage) {
       messages: [
         {
           role: 'system',
-          content: 'You are Neural AI, an intelligent, helpful, and concise cybernetic assistant operating in the Neural Link terminal (year 2045). Answer questions clearly, accurately, and assist with any domain, code, math, or query.'
+          content: 'You are Neural AI, a high-level cybernetic AI assistant in 2045. Answer accurately, clearly, and format useful code snippets with backticks.'
         },
         { role: 'user', content: userMessage }
       ],
       model: 'llama-3.1-8b-instant',
       temperature: 0.7,
-      max_tokens: 400
+      max_tokens: 450
     });
 
     return completion.choices[0]?.message?.content || "Neural transmission complete.";
@@ -121,7 +122,7 @@ io.on('connection', (socket) => {
 
   socket.on('join room', (room) => {
     socket.join(room);
-    db.all('SELECT id, room, username, message, fileUrl, timestamp FROM messages WHERE room = ? ORDER BY id ASC LIMIT 50', [room], (err, rows) => {
+    db.all('SELECT id, room, username, message, fileUrl, reactions, timestamp FROM messages WHERE room = ? ORDER BY id ASC LIMIT 50', [room], (err, rows) => {
       if (!err) socket.emit('chat history', rows);
     });
   });
@@ -132,17 +133,17 @@ io.on('connection', (socket) => {
 
     db.run('INSERT INTO messages (room, username, message, fileUrl) VALUES (?, ?, ?, ?)', [room || 'General', username, message, fileUrl], async function (err) {
       if (!err) {
-        const msgData = { id: this.lastID, room: room || 'General', username, message, fileUrl, timestamp: new Date().toISOString() };
+        const msgData = { id: this.lastID, room: room || 'General', username, message, fileUrl, reactions: '{}', timestamp: new Date().toISOString() };
         io.to(room || 'General').emit('chat message', msgData);
 
-        // Smart Trigger for AI Assistant Channel or @AI Tag
+        // AI Assistant Trigger
         if (message && (message.toLowerCase().includes('@ai') || room === 'AI Assistant') && username !== 'Neural AI') {
-          const cleanPrompt = message.replace(/@ai/gi, '').trim() || "Hello Neural AI";
+          const cleanPrompt = message.replace(/@ai/gi, '').trim() || "Greetings Neural AI";
           
           io.to(room || 'General').emit('user typing', { 
             username: 'Neural AI', 
             room: room || 'General', 
-            text: 'Neural AI processing query via Groq Quantum Link...' 
+            text: 'Neural AI is computing quantum response...' 
           });
 
           const aiReply = await fetchAIResponse(cleanPrompt);
@@ -155,11 +156,29 @@ io.on('connection', (socket) => {
                 room: room || 'General',
                 username: 'Neural AI',
                 message: aiReply,
+                reactions: '{}',
                 timestamp: new Date().toISOString()
               });
             }
           });
         }
+      }
+    });
+  });
+
+  socket.on('add reaction', (data) => {
+    const { id, room, emoji } = data;
+    db.get('SELECT reactions FROM messages WHERE id = ?', [id], (err, row) => {
+      if (!err && row) {
+        let reactions = {};
+        try { reactions = JSON.parse(row.reactions || '{}'); } catch(e) {}
+        reactions[emoji] = (reactions[emoji] || 0) + 1;
+        
+        db.run('UPDATE messages SET reactions = ? WHERE id = ?', [JSON.stringify(reactions), id], (err2) => {
+          if (!err2) {
+            io.to(room).emit('reaction updated', { id, reactions });
+          }
+        });
       }
     });
   });
@@ -198,5 +217,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Neural Link 2045 Server running on port ${PORT}`);
+  console.log(`Neural Link v2.0 Terminal running on port ${PORT}`);
 });
