@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NEURAL LINK v2.0</title>
 
-  <!-- PWA Settings -->
+  <!-- PWA Integration -->
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#00f2fe">
 
@@ -17,61 +17,41 @@
   <style>
     :root {
       --accent-glow: #00f2fe;
-      --accent-secondary: #4facfe;
     }
     body {
       font-family: 'Rajdhani', sans-serif;
       background-color: #0a0a12;
       color: #e2e8f0;
-      overflow-x: hidden;
     }
     .font-cyber { font-family: 'Orbitron', sans-serif; }
     
-    /* Cyber Glassmorphism */
     .glass-panel {
-      background: rgba(15, 23, 42, 0.75);
+      background: rgba(15, 23, 42, 0.85);
       backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
     }
     .glass-input {
-      background: rgba(30, 41, 59, 0.7);
+      background: rgba(30, 41, 59, 0.8);
       border: 1px solid rgba(255, 255, 255, 0.15);
       transition: all 0.3s ease;
     }
     .glass-input:focus {
       border-color: var(--accent-glow);
-      box-shadow: 0 0 15px var(--accent-glow);
+      box-shadow: 0 0 12px var(--accent-glow);
       outline: none;
     }
     .custom-scrollbar::-webkit-scrollbar { width: 5px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--accent-glow); }
-
-    /* Canvas Background */
-    #neural-canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 0;
-      pointer-events: none;
-    }
   </style>
 </head>
 <body class="h-screen flex flex-col justify-between relative overflow-hidden select-none">
 
-  <!-- Ambient Neural Canvas Layer -->
-  <canvas id="neural-canvas"></canvas>
-
-  <!-- Navigation / Header Bar -->
+  <!-- Header Section -->
   <header class="glass-panel z-20 px-4 py-3 flex items-center justify-between border-b border-slate-800">
     <div class="flex items-center space-x-3">
-      <button id="open-channels" class="md:hidden p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/50">
-        ☰
-      </button>
+      <button id="open-channels" class="md:hidden p-2 text-slate-400 hover:text-white">☰</button>
       <div class="flex items-center space-x-2">
         <span class="w-3 h-3 rounded-full bg-cyan-400 animate-pulse"></span>
         <h1 class="font-cyber font-bold text-lg md:text-xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
@@ -80,13 +60,11 @@
       </div>
     </div>
 
-    <!-- Header Actions -->
-    <div class="flex items-center space-x-2 md:space-x-4">
+    <div class="flex items-center space-x-3">
       <span id="online-badge" class="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
         🟢 <span id="online-count" class="ml-1">1 linked</span>
       </span>
 
-      <!-- Theme Selector -->
       <select id="theme-selector" class="glass-input text-xs px-2 py-1 rounded bg-slate-900 text-slate-300">
         <option value="cyan">Cyan Pulse</option>
         <option value="purple">Neon Purple</option>
@@ -95,20 +73,17 @@
         <option value="red">Cyber Red</option>
       </select>
 
-      <button id="open-profile" class="md:hidden p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/50">
-        👤
-      </button>
+      <button id="open-profile" class="md:hidden p-2 text-slate-400 hover:text-white">👤</button>
     </div>
   </header>
 
-  <!-- Main Container Layout -->
+  <!-- Content Layout -->
   <div class="flex-1 flex overflow-hidden z-10 relative">
 
-    <!-- Left Drawer (Channels) -->
-    <aside id="channel-drawer" class="fixed md:relative inset-y-0 left-0 w-64 glass-panel z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col border-r border-slate-800">
-      <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+    <!-- Channels Sidebar -->
+    <aside id="channel-drawer" class="w-64 glass-panel hidden md:flex flex-col border-r border-slate-800">
+      <div class="p-4 border-b border-slate-800">
         <h2 class="font-cyber text-sm tracking-wider text-slate-400">FREQUENCY CHANNELS</h2>
-        <button id="close-channels" class="md:hidden text-slate-400 hover:text-white">✕</button>
       </div>
       <div class="p-2 space-y-1 custom-scrollbar overflow-y-auto flex-1" id="channel-list">
         <button data-room="General Matrix" class="room-btn w-full text-left px-3 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 font-medium border border-cyan-500/20">
@@ -126,37 +101,23 @@
       </div>
     </aside>
 
-    <!-- Center Chat Feed -->
+    <!-- Chat Console -->
     <main class="flex-1 flex flex-col justify-between glass-panel m-0 md:m-3 rounded-none md:rounded-xl overflow-hidden border-0 md:border border-slate-800">
       
-      <!-- Current Channel Sub-Header -->
       <div class="px-4 py-2.5 border-b border-slate-800 bg-slate-900/40 flex justify-between items-center">
         <span id="current-room-title" class="font-cyber text-sm text-cyan-400"># General Matrix</span>
         <span class="text-xs text-slate-500">Press Ctrl+K for commands</span>
       </div>
 
-      <!-- Messages Output Feed -->
-      <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-3 custom-scrollbar">
-        <!-- Messages render dynamically via socket events -->
-      </div>
+      <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-3 custom-scrollbar"></div>
 
-      <!-- Typing Indicator -->
       <div id="typing-indicator" class="px-4 py-1 text-xs text-slate-500 italic h-5"></div>
 
-      <!-- Input Bar Controls -->
       <div class="p-3 border-t border-slate-800 bg-slate-900/60">
         <form id="chat-form" class="flex items-center space-x-2">
-          
-          <button type="button" id="voice-rec-btn" class="p-2 rounded-lg glass-input text-slate-400 hover:text-cyan-400 transition" title="Voice Note">
-            🎙️
-          </button>
-          
-          <button type="button" id="stt-btn" class="p-2 rounded-lg glass-input text-slate-400 hover:text-cyan-400 transition" title="Speech to Text">
-            🎤
-          </button>
-
+          <button type="button" id="voice-rec-btn" class="p-2 rounded-lg glass-input text-slate-400 hover:text-cyan-400">🎙️</button>
+          <button type="button" id="stt-btn" class="p-2 rounded-lg glass-input text-slate-400 hover:text-cyan-400">🎤</button>
           <input type="text" id="message-input" placeholder="Transmit neural message or type @AI..." autocomplete="off" class="flex-1 glass-input px-4 py-2.5 rounded-lg text-sm text-white placeholder-slate-500">
-
           <button type="submit" class="px-4 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-cyber text-xs tracking-wider hover:opacity-90 transition shadow-lg shadow-cyan-500/20">
             TRANSMIT ➤
           </button>
@@ -164,35 +125,26 @@
       </div>
     </main>
 
-    <!-- Right Drawer (User Profile) -->
-    <aside id="profile-drawer" class="fixed md:relative inset-y-0 right-0 w-64 glass-panel z-30 transform translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col border-l border-slate-800">
-      <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+    <!-- User Profile Sidebar -->
+    <aside id="profile-drawer" class="w-64 glass-panel hidden md:flex flex-col border-l border-slate-800">
+      <div class="p-4 border-b border-slate-800">
         <h2 class="font-cyber text-sm tracking-wider text-slate-400">USER PROFILE</h2>
-        <button id="close-profile" class="md:hidden text-slate-400 hover:text-white">✕</button>
       </div>
       <div class="p-4 space-y-4">
         <div class="text-center">
-          <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 mx-auto flex items-center justify-center font-cyber font-bold text-xl text-white shadow-lg shadow-cyan-500/20 mb-2" id="user-avatar">
-            ?
-          </div>
+          <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 mx-auto flex items-center justify-center font-cyber font-bold text-xl text-white shadow-lg shadow-cyan-500/20 mb-2" id="user-avatar">?</div>
           <h3 id="profile-username" class="font-cyber text-base text-white">Guest Operator</h3>
           <p class="text-xs text-emerald-400">Online & Encrypted</p>
         </div>
         <div class="border-t border-slate-800 pt-4">
           <h4 class="text-xs font-cyber text-slate-400 mb-2">ACTIVE NODES</h4>
-          <ul id="online-users-list" class="space-y-1.5 text-xs text-slate-300">
-            <!-- Online user list -->
-          </ul>
+          <ul id="online-users-list" class="space-y-1.5 text-xs text-slate-300"></ul>
         </div>
       </div>
     </aside>
 
   </div>
 
-  <!-- Mobile Backdrops -->
-  <div id="drawer-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 hidden"></div>
-
-  <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -202,8 +154,6 @@
       });
     }
   </script>
-
-  <!-- Client JavaScript Logic -->
   <script src="/script.js"></script>
 </body>
 </html>
