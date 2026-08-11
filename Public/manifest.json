@@ -1,0 +1,21 @@
+{
+  "short_name": "NeuralLink",
+  "name": "Neural Link v2.0",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2082/2082801.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2082/2082801.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0a0a12",
+  "theme_color": "#00f2fe",
+  "display": "standalone",
+  "orientation": "portrait"
+}

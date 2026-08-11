@@ -1,825 +1,209 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="purple">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#08080c">
-  <title>NEURAL LINK v2.0 | Cybernetic Terminal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEURAL LINK v2.0</title>
+
+  <!-- PWA Settings -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#00f2fe">
+
+  <!-- Tailwind CSS & Socket.io -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
   <style>
     :root {
-      --bg-color: #08080c;
-      --card-bg: rgba(18, 18, 28, 0.75);
-      --card-border: 1px solid rgba(255, 255, 255, 0.08);
-      --accent: #bb86fc;
-      --accent-glow: rgba(187, 134, 252, 0.35);
-      --accent-light: rgba(187, 134, 252, 0.12);
-      --text-main: #f0f0f5;
-      --text-muted: #8a8a9e;
-      --cyan: #03dac6;
-      --green: #00e676;
+      --accent-glow: #00f2fe;
+      --accent-secondary: #4facfe;
     }
-
-    [data-theme="cyan"] {
-      --accent: #03dac6;
-      --accent-glow: rgba(3, 218, 198, 0.35);
-      --accent-light: rgba(3, 218, 198, 0.12);
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background-color: #0a0a12;
+      color: #e2e8f0;
+      overflow-x: hidden;
     }
-    [data-theme="green"] {
-      --accent: #00e676;
-      --accent-glow: rgba(0, 230, 118, 0.35);
-      --accent-light: rgba(0, 230, 118, 0.12);
-    }
-    [data-theme="orange"] {
-      --accent: #ff9100;
-      --accent-glow: rgba(255, 145, 0, 0.35);
-      --accent-light: rgba(255, 145, 0, 0.12);
-    }
-    [data-theme="red"] {
-      --accent: #ff1744;
-      --accent-glow: rgba(255, 23, 68, 0.35);
-      --accent-light: rgba(255, 23, 68, 0.12);
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-    body { background: var(--bg-color); color: var(--text-main); height: 100dvh; overflow: hidden; display: flex; justify-content: center; align-items: center; position: relative; }
-
-    #ambient-canvas { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; opacity: 0.06; }
-
-    #app-workspace {
-      z-index: 10;
-      display: none;
-      width: 98%;
-      max-width: 1440px;
-      height: 94dvh;
-      background: var(--card-bg);
-      backdrop-filter: blur(25px);
-      -webkit-backdrop-filter: blur(25px);
-      border-radius: 24px;
-      border: var(--card-border);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-      overflow: hidden;
-      flex-direction: row;
-      position: relative;
-    }
-
-    /* Auth Screen */
-    .auth-container {
-      z-index: 20; width: 90%; max-width: 420px; background: var(--card-bg); backdrop-filter: blur(25px); border-radius: 20px; padding: 36px; border: var(--card-border); box-shadow: 0 20px 60px rgba(0,0,0,0.8); text-align: center;
-    }
-    .auth-container h2 { font-size: 24px; letter-spacing: 3px; color: var(--accent); margin-bottom: 8px; font-weight: 300; }
-    .auth-container p { font-size: 12px; color: var(--text-muted); margin-bottom: 24px; text-transform: uppercase; letter-spacing: 1px; }
-    .auth-container input { width: 100%; padding: 14px; margin: 8px 0; background: rgba(0,0,0,0.4); border: var(--card-border); color: #fff; border-radius: 10px; outline: none; transition: 0.3s; }
-    .auth-container input:focus { border-color: var(--accent); box-shadow: 0 0 15px var(--accent-glow); }
-    .auth-btn { width: 100%; padding: 14px; margin-top: 16px; background: var(--accent); border: none; color: #000; font-weight: bold; border-radius: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 1.5px; transition: 0.3s; }
-    .auth-btn:hover { box-shadow: 0 0 20px var(--accent-glow); transform: translateY(-2px); }
-    .switch-btn { background: transparent; color: var(--text-muted); margin-top: 16px; font-size: 13px; cursor: pointer; text-decoration: underline; }
-
-    /* Left Sidebar */
-    .sidebar { width: 280px; background: rgba(0,0,0,0.35); border-right: var(--card-border); display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; z-index: 30; transition: transform 0.3s ease; }
-    .brand-header { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
-    .brand-logo { width: 34px; height: 34px; background: var(--accent-light); border: 1px solid var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
-    .brand-title { font-size: 15px; font-weight: 700; letter-spacing: 2px; color: #fff; }
-
-    .sidebar h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin: 16px 0 10px 0; }
-    .room-list { list-style: none; overflow-y: auto; }
-    .room-item { padding: 10px 14px; margin-bottom: 4px; border-radius: 12px; cursor: pointer; color: var(--text-muted); font-size: 14px; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease; }
-    .room-item:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
-    .room-item.active { background: var(--accent-light); color: #fff; font-weight: 600; border: 1px solid var(--accent-glow); }
-
-    .user-item { padding: 8px 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-muted); margin-bottom: 4px; cursor: pointer; transition: 0.2s; }
-    .user-item:hover { background: rgba(255,255,255,0.04); color: #fff; }
-    .user-info-left { display: flex; align-items: center; gap: 8px; }
-    .neural-line { flex: 1; height: 2px; margin: 0 8px; background: linear-gradient(90deg, var(--accent) 0%, var(--cyan) 100%); position: relative; opacity: 0.6; }
-    .neural-line::after { content: ''; position: absolute; top: -3px; left: 0; width: 8px; height: 8px; background: var(--cyan); border-radius: 50%; animation: neuralPulse 2s infinite linear; }
-    @keyframes neuralPulse { 0% { left: 0%; } 100% { left: 100%; } }
-
-    .diagnostics-panel { background: rgba(0,0,0,0.4); border: var(--card-border); border-radius: 14px; padding: 12px; margin-top: auto; font-size: 11px; }
-    .diag-title { color: var(--cyan); font-weight: 600; display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-    .diag-title::before { content: ''; width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: dotPulse 1.8s infinite ease-in-out; }
-    @keyframes dotPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.4; } }
-
-    .diag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; color: var(--text-muted); }
-    .diag-val { color: #fff; font-family: monospace; text-align: right; }
-
-    .avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, rgba(187, 134, 252, 0.2), rgba(3, 218, 198, 0.2)); border: 1.5px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: var(--text-main); position: relative; flex-shrink: 0; box-shadow: 0 0 10px var(--accent-light); }
-
-    /* Main Chat Area */
-    .chat-area { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.15); position: relative; width: 100%; min-width: 0; }
-    .chat-header { padding: 12px 16px; background: rgba(0,0,0,0.25); border-bottom: var(--card-border); display: flex; justify-content: space-between; align-items: center; }
-    .chat-header-title { font-size: 15px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .font-cyber { font-family: 'Orbitron', sans-serif; }
     
-    .member-count-badge { font-size: 10px; background: rgba(0, 230, 118, 0.12); color: var(--green); border: 1px solid rgba(0, 230, 118, 0.3); padding: 2px 6px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px; }
-    
-    .mobile-menu-btn, .mobile-profile-btn { display: none; background: rgba(255,255,255,0.05); border: var(--card-border); color: var(--accent); padding: 6px 10px; border-radius: 8px; font-size: 16px; cursor: pointer; }
-
-    .header-actions { display: flex; gap: 8px; align-items: center; }
-    .header-action-btn { background: transparent; border: none; color: var(--text-muted); font-size: 15px; cursor: pointer; transition: 0.2s; padding: 2px; }
-    .header-action-btn:hover { color: #fff; transform: scale(1.1); }
-
-    .theme-selector { display: flex; gap: 5px; align-items: center; background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 20px; border: var(--card-border); }
-    .theme-dot { width: 12px; height: 12px; border-radius: 50%; cursor: pointer; transition: 0.2s; }
-    .theme-dot:hover { transform: scale(1.25); }
-
-    .pinned-bar { padding: 8px 14px; background: rgba(187, 134, 252, 0.08); border-bottom: var(--card-border); font-size: 11.5px; color: var(--accent); display: flex; align-items: center; gap: 8px; word-break: break-word; }
-
-    #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
-    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); text-align: center; }
-    .neural-graphic { width: 80px; height: 80px; border-radius: 50%; border: 2px stroke var(--accent); border-top-color: transparent; animation: spin 4s infinite linear; margin-bottom: 16px; position: relative; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-    /* Glass Chat Cards */
-    .msg { max-width: 78%; padding: 12px 18px; border-radius: 18px; background: rgba(255, 255, 255, 0.04); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); position: relative; animation: messageSlide 0.15s cubic-bezier(0.1, 0.9, 0.2, 1); box-shadow: 0 10px 30px rgba(0,0,0,0.35); transition: transform 0.2s ease, border-color 0.2s ease; }
-    .msg:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.18); box-shadow: 0 14px 40px rgba(0,0,0,0.45); }
-    @keyframes messageSlide { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-    
-    .msg.own { align-self: flex-end; background: var(--accent-light); border-color: var(--accent-glow); border-bottom-right-radius: 4px; }
-    .msg:not(.own) { border-bottom-left-radius: 4px; }
-    
-    .msg.ai-msg { border-left: 3px solid var(--cyan); background: rgba(3, 218, 198, 0.06); }
-    .ai-badge { display: inline-block; background: var(--cyan); color: #000; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; margin-left: 6px; text-transform: uppercase; }
-    
-    .ai-waveform { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; margin-left: 8px; vertical-align: middle; }
-    .ai-waveform span { width: 2px; height: 100%; background: var(--cyan); animation: wave 1s infinite ease-in-out; }
-    .ai-waveform span:nth-child(2) { animation-delay: 0.2s; }
-    .ai-waveform span:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes wave { 0%, 100% { height: 3px; } 50% { height: 12px; } }
-
-    .msg .author { font-size: 11px; color: var(--accent); font-weight: 700; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between; }
-    .msg .msg-text { font-size: 14px; line-height: 1.5; color: #f0f0f5; word-break: break-word; font-weight: 400; }
-    .msg .msg-text code { background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 6px; font-family: monospace; color: var(--cyan); font-size: 13px; }
-    .msg img { max-width: 100%; border-radius: 12px; margin-top: 8px; display: block; }
-    .msg .time { font-size: 10px; color: var(--text-muted); text-align: right; margin-top: 6px; }
-
-    .ai-suggestions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
-    .sug-btn { background: rgba(3, 218, 198, 0.12); border: 1px solid rgba(3, 218, 198, 0.3); color: var(--cyan); padding: 4px 10px; border-radius: 12px; font-size: 11px; cursor: pointer; transition: 0.2s; }
-    .sug-btn:hover { background: var(--cyan); color: #000; font-weight: 600; }
-
-    .ai-toolbar { display: flex; gap: 10px; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px; }
-    .ai-tool-btn { background: transparent; border: none; color: var(--cyan); font-size: 11px; cursor: pointer; opacity: 0.7; transition: 0.2s; }
-    .ai-tool-btn:hover { opacity: 1; text-shadow: 0 0 8px var(--cyan); }
-
-    .msg-actions { position: absolute; top: -10px; right: 12px; opacity: 0; transition: 0.2s; display: flex; gap: 6px; background: rgba(10,10,15,0.9); backdrop-filter: blur(8px); padding: 4px 8px; border-radius: 12px; border: var(--card-border); }
-    .msg:hover .msg-actions { opacity: 1; }
-    .act-btn { cursor: pointer; font-size: 12px; opacity: 0.8; }
-    .act-btn:hover { opacity: 1; transform: scale(1.15); }
-
-    .ai-presence { height: 22px; padding: 0 20px; font-size: 11px; color: var(--cyan); display: flex; align-items: center; gap: 8px; font-style: italic; }
-
-    /* Input Bar */
-    .chat-input-container { padding: 12px 14px; background: rgba(0,0,0,0.35); border-top: var(--card-border); display: flex; gap: 8px; align-items: center; width: 100%; }
-    .input-wrapper { flex: 1; display: flex; align-items: center; background: rgba(0,0,0,0.5); border: var(--card-border); border-radius: 18px; padding: 4px 8px; transition: 0.3s; min-width: 0; }
-    .input-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); background: rgba(0,0,0,0.65); }
-    .input-wrapper input { flex: 1; padding: 8px 6px; background: transparent; border: none; color: #fff; outline: none; font-size: 14px; min-width: 0; }
-    
-    .icon-btn { background: transparent; border: none; color: var(--text-muted); padding: 4px; cursor: pointer; font-size: 16px; transition: 0.2s; flex-shrink: 0; }
-    .icon-btn:hover { color: #fff; }
-    .icon-btn.recording { color: #ff1744; animation: recPulse 1s infinite ease-in-out; }
-    @keyframes recPulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.15); } 100% { opacity: 1; transform: scale(1); } }
-
-    .send-btn { background: var(--accent); border: none; color: #000; padding: 10px 18px; font-weight: bold; border-radius: 14px; cursor: pointer; font-size: 12.5px; letter-spacing: 1px; transition: all 0.25s; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
-    .send-btn:hover { box-shadow: 0 0 20px var(--accent-glow); transform: translateY(-1px); }
-
-    /* Right User Profile Drawer */
-    .profile-drawer { width: 280px; background: rgba(0,0,0,0.4); border-left: var(--card-border); padding: 20px; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s ease; flex-shrink: 0; z-index: 30; }
-    .profile-avatar { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, rgba(187, 134, 252, 0.3), rgba(3, 218, 198, 0.3)); border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: var(--text-main); box-shadow: 0 0 25px var(--accent-glow); margin-bottom: 12px; }
-    .profile-name { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 4px; }
-    .profile-status { font-size: 11px; color: var(--green); margin-bottom: 20px; display: flex; align-items: center; gap: 6px; }
-    
-    .profile-stats-grid { width: 100%; display: flex; flex-direction: column; gap: 10px; font-size: 12px; }
-    .stat-row { display: flex; justify-content: space-between; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 10px; border: var(--card-border); }
-    .stat-label { color: var(--text-muted); }
-    .stat-val { color: #fff; font-weight: 600; }
-
-    /* Command Palette & Emoji Picker */
-    #cmd-palette { display: none; position: absolute; top: 15%; left: 50%; transform: translateX(-50%); width: 90%; max-width: 520px; background: rgba(10, 10, 15, 0.95); border: 1px solid var(--accent); border-radius: 18px; padding: 20px; box-shadow: 0 0 40px var(--accent-glow); z-index: 100; backdrop-filter: blur(25px); }
-    #cmd-input { width: 100%; padding: 14px; background: rgba(255,255,255,0.05); border: var(--card-border); color: #fff; border-radius: 10px; outline: none; font-size: 16px; margin-bottom: 12px; }
-    .cmd-list { list-style: none; max-height: 200px; overflow-y: auto; }
-    .cmd-item { padding: 10px 14px; border-radius: 8px; cursor: pointer; color: var(--text-muted); font-size: 13px; display: flex; justify-content: space-between; }
-    .cmd-item:hover { background: var(--accent-light); color: #fff; }
-
-    .emoji-picker { display: none; position: absolute; bottom: 70px; right: 15px; background: rgba(10, 10, 15, 0.95); border: var(--card-border); border-radius: 14px; padding: 12px; grid-template-columns: repeat(5, 1fr); gap: 10px; z-index: 100; backdrop-filter: blur(20px); }
-    .emoji-picker span { font-size: 22px; cursor: pointer; text-align: center; }
-
-    .sidebar-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 25; }
-
-    /* Clean Mobile Responsive Design */
-    @media (max-width: 900px) {
-      .profile-drawer { position: absolute; right: 0; top: 0; height: 100%; width: 280px; transform: translateX(100%); background: rgba(10,10,15,0.98); backdrop-filter: blur(25px); }
-      .profile-drawer.open { transform: translateX(0); }
-      .mobile-profile-btn { display: inline-block; }
+    /* Cyber Glassmorphism */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     }
+    .glass-input {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      transition: all 0.3s ease;
+    }
+    .glass-input:focus {
+      border-color: var(--accent-glow);
+      box-shadow: 0 0 15px var(--accent-glow);
+      outline: none;
+    }
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--accent-glow); }
 
-    @media (max-width: 600px) {
-      #app-workspace { width: 100%; height: 100dvh; border-radius: 0; border: none; }
-      .sidebar { position: absolute; left: 0; top: 0; height: 100%; width: 280px; transform: translateX(-100%); background: rgba(10,10,15,0.98); backdrop-filter: blur(25px); }
-      .sidebar.open { transform: translateX(0); }
-      .mobile-menu-btn { display: inline-block; }
-      .sidebar-overlay.open { display: block; }
-      
-      .theme-selector-desktop { display: none; }
-      .member-count-badge { display: none !important; }
-      .chat-header-title { font-size: 14px; }
-      .header-actions { gap: 6px; }
-      .header-action-btn { font-size: 14px; }
-      
-      .msg { max-width: 90%; }
-      .msg-actions { opacity: 1; }
-      .send-btn-text { display: none; }
-      .send-btn::after { content: '➤'; font-size: 14px; }
-      .send-btn { padding: 10px 14px; border-radius: 12px; }
+    /* Canvas Background */
+    #neural-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
     }
   </style>
 </head>
-<body>
+<body class="h-screen flex flex-col justify-between relative overflow-hidden select-none">
 
-<canvas id="ambient-canvas"></canvas>
+  <!-- Ambient Neural Canvas Layer -->
+  <canvas id="neural-canvas"></canvas>
 
-<!-- Auth Screen -->
-<div class="auth-container" id="auth-screen">
-  <h2>NEURAL LINK</h2>
-  <p>:: Cybernetic Terminal 2045 ::</p>
-  <input type="text" id="username" placeholder="Neural Tag (Username)" autocomplete="off">
-  <input type="password" id="password" placeholder="Passcode">
-  <button class="auth-btn" id="auth-btn" onclick="handleAuth()">Establish Link</button>
-  <div class="switch-btn" onclick="toggleAuthMode()" id="switch-text">New Terminal Node? Register</div>
-</div>
-
-<!-- Main Workspace -->
-<div id="app-workspace">
-  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileDrawers()"></div>
-  
-  <!-- Left Navigation Sidebar -->
-  <div class="sidebar" id="sidebar">
-    <div class="brand-header">
-      <div class="brand-logo">N</div>
-      <div class="brand-title">NEURAL LINK</div>
-    </div>
-
-    <h3>Channels</h3>
-    <ul class="room-list">
-      <li class="room-item active" onclick="switchRoom('General', this)">🧠 General</li>
-      <li class="room-item" onclick="switchRoom('AI Assistant', this)">🤖 AI Assistant</li>
-      <li class="room-item" onclick="switchRoom('Tech', this)">⚙ Tech</li>
-      <li class="room-item" onclick="switchRoom('Gaming', this)">🎮 Gaming</li>
-    </ul>
-
-    <h3>Accent Theme</h3>
-    <div class="theme-selector" style="margin-bottom:12px; justify-content:space-around;">
-      <div class="theme-dot" style="background:#bb86fc;" onclick="setTheme('purple')"></div>
-      <div class="theme-dot" style="background:#03dac6;" onclick="setTheme('cyan')"></div>
-      <div class="theme-dot" style="background:#00e676;" onclick="setTheme('green')"></div>
-      <div class="theme-dot" style="background:#ff9100;" onclick="setTheme('orange')"></div>
-      <div class="theme-dot" style="background:#ff1744;" onclick="setTheme('red')"></div>
-    </div>
-
-    <h3>Active Links</h3>
-    <div id="online-users-list"></div>
-
-    <div class="diagnostics-panel">
-      <div class="diag-title">Neural Link Stable</div>
-      <div class="diag-grid">
-        <span>Latency:</span><span class="diag-val" id="diag-latency">12 ms</span>
-        <span>Encryption:</span><span class="diag-val">AES-256</span>
-        <span>Packet Loss:</span><span class="diag-val">0%</span>
+  <!-- Navigation / Header Bar -->
+  <header class="glass-panel z-20 px-4 py-3 flex items-center justify-between border-b border-slate-800">
+    <div class="flex items-center space-x-3">
+      <button id="open-channels" class="md:hidden p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/50">
+        ☰
+      </button>
+      <div class="flex items-center space-x-2">
+        <span class="w-3 h-3 rounded-full bg-cyan-400 animate-pulse"></span>
+        <h1 class="font-cyber font-bold text-lg md:text-xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+          NEURAL LINK <span class="text-xs text-slate-400 font-normal">v2.0</span>
+        </h1>
       </div>
     </div>
+
+    <!-- Header Actions -->
+    <div class="flex items-center space-x-2 md:space-x-4">
+      <span id="online-badge" class="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        🟢 <span id="online-count" class="ml-1">1 linked</span>
+      </span>
+
+      <!-- Theme Selector -->
+      <select id="theme-selector" class="glass-input text-xs px-2 py-1 rounded bg-slate-900 text-slate-300">
+        <option value="cyan">Cyan Pulse</option>
+        <option value="purple">Neon Purple</option>
+        <option value="green">Matrix Green</option>
+        <option value="orange">Solar Orange</option>
+        <option value="red">Cyber Red</option>
+      </select>
+
+      <button id="open-profile" class="md:hidden p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/50">
+        👤
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container Layout -->
+  <div class="flex-1 flex overflow-hidden z-10 relative">
+
+    <!-- Left Drawer (Channels) -->
+    <aside id="channel-drawer" class="fixed md:relative inset-y-0 left-0 w-64 glass-panel z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col border-r border-slate-800">
+      <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+        <h2 class="font-cyber text-sm tracking-wider text-slate-400">FREQUENCY CHANNELS</h2>
+        <button id="close-channels" class="md:hidden text-slate-400 hover:text-white">✕</button>
+      </div>
+      <div class="p-2 space-y-1 custom-scrollbar overflow-y-auto flex-1" id="channel-list">
+        <button data-room="General Matrix" class="room-btn w-full text-left px-3 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 font-medium border border-cyan-500/20">
+          # General Matrix
+        </button>
+        <button data-room="Cyber Lounge" class="room-btn w-full text-left px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800/50 hover:text-slate-200">
+          # Cyber Lounge
+        </button>
+        <button data-room="Dev Protocol" class="room-btn w-full text-left px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800/50 hover:text-slate-200">
+          # Dev Protocol
+        </button>
+        <button data-room="AI Assistant" class="room-btn w-full text-left px-3 py-2 rounded-lg text-purple-400 hover:bg-purple-900/20">
+          ⚡ # AI Assistant
+        </button>
+      </div>
+    </aside>
+
+    <!-- Center Chat Feed -->
+    <main class="flex-1 flex flex-col justify-between glass-panel m-0 md:m-3 rounded-none md:rounded-xl overflow-hidden border-0 md:border border-slate-800">
+      
+      <!-- Current Channel Sub-Header -->
+      <div class="px-4 py-2.5 border-b border-slate-800 bg-slate-900/40 flex justify-between items-center">
+        <span id="current-room-title" class="font-cyber text-sm text-cyan-400"># General Matrix</span>
+        <span class="text-xs text-slate-500">Press Ctrl+K for commands</span>
+      </div>
+
+      <!-- Messages Output Feed -->
+      <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-3 custom-scrollbar">
+        <!-- Messages render dynamically via socket events -->
+      </div>
+
+      <!-- Typing Indicator -->
+      <div id="typing-indicator" class="px-4 py-1 text-xs text-slate-500 italic h-5"></div>
+
+      <!-- Input Bar Controls -->
+      <div class="p-3 border-t border-slate-800 bg-slate-900/60">
+        <form id="chat-form" class="flex items-center space-x-2">
+          
+          <button type="button" id="voice-rec-btn" class="p-2 rounded-lg glass-input text-slate-400 hover:text-cyan-400 transition" title="Voice Note">
+            🎙️
+          </button>
+          
+          <button type="button" id="stt-btn" class="p-2 rounded-lg glass-input text-slate-400 hover:text-cyan-400 transition" title="Speech to Text">
+            🎤
+          </button>
+
+          <input type="text" id="message-input" placeholder="Transmit neural message or type @AI..." autocomplete="off" class="flex-1 glass-input px-4 py-2.5 rounded-lg text-sm text-white placeholder-slate-500">
+
+          <button type="submit" class="px-4 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-cyber text-xs tracking-wider hover:opacity-90 transition shadow-lg shadow-cyan-500/20">
+            TRANSMIT ➤
+          </button>
+        </form>
+      </div>
+    </main>
+
+    <!-- Right Drawer (User Profile) -->
+    <aside id="profile-drawer" class="fixed md:relative inset-y-0 right-0 w-64 glass-panel z-30 transform translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col border-l border-slate-800">
+      <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+        <h2 class="font-cyber text-sm tracking-wider text-slate-400">USER PROFILE</h2>
+        <button id="close-profile" class="md:hidden text-slate-400 hover:text-white">✕</button>
+      </div>
+      <div class="p-4 space-y-4">
+        <div class="text-center">
+          <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 mx-auto flex items-center justify-center font-cyber font-bold text-xl text-white shadow-lg shadow-cyan-500/20 mb-2" id="user-avatar">
+            ?
+          </div>
+          <h3 id="profile-username" class="font-cyber text-base text-white">Guest Operator</h3>
+          <p class="text-xs text-emerald-400">Online & Encrypted</p>
+        </div>
+        <div class="border-t border-slate-800 pt-4">
+          <h4 class="text-xs font-cyber text-slate-400 mb-2">ACTIVE NODES</h4>
+          <ul id="online-users-list" class="space-y-1.5 text-xs text-slate-300">
+            <!-- Online user list -->
+          </ul>
+        </div>
+      </div>
+    </aside>
+
   </div>
 
-  <!-- Central Chat Area -->
-  <div class="chat-area">
-    <div class="chat-header">
-      <div class="chat-header-title">
-        <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">☰</button>
-        <span id="room-header"># General</span>
-        <span class="member-count-badge">🟢 23 linked</span>
-      </div>
-      
-      <div class="header-actions">
-        <button class="header-action-btn" title="Search Channel" onclick="document.getElementById('cmd-palette').style.display='block'; document.getElementById('cmd-input').focus();">🔍</button>
-        <button class="header-action-btn" title="Voice Link" onclick="alert('Establishing encrypted Voice Link stream...')">📞</button>
-        <button class="header-action-btn" title="Video Stream" onclick="alert('Connecting holographic Video Stream...')">📹</button>
-        
-        <div class="theme-selector theme-selector-desktop">
-          <span style="font-size:10px; color:var(--text-muted); margin-right:4px;">ACCENT</span>
-          <div class="theme-dot" style="background:#bb86fc;" onclick="setTheme('purple')"></div>
-          <div class="theme-dot" style="background:#03dac6;" onclick="setTheme('cyan')"></div>
-          <div class="theme-dot" style="background:#00e676;" onclick="setTheme('green')"></div>
-          <div class="theme-dot" style="background:#ff9100;" onclick="setTheme('orange')"></div>
-          <div class="theme-dot" style="background:#ff1744;" onclick="setTheme('red')"></div>
-        </div>
+  <!-- Mobile Backdrops -->
+  <div id="drawer-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 hidden"></div>
 
-        <button class="mobile-profile-btn" onclick="toggleMobileProfile()">👤</button>
-      </div>
-    </div>
-
-    <!-- Pinned Notice Banner -->
-    <div class="pinned-bar">
-      <span>📌</span>
-      <span><strong>Notice:</strong> Neural Link v2.0 deployed. High-speed quantum AI active.</span>
-    </div>
-
-    <div id="messages"></div>
-    <div class="ai-presence" id="ai-presence"></div>
-
-    <!-- Controls Input Bar -->
-    <form class="chat-input-container" onsubmit="sendMessage(event)">
-      <input type="file" id="file-input" style="display:none;" onchange="handleFileUpload(event)">
-      <div class="input-wrapper">
-        <button type="button" class="icon-btn" title="Attach Data" onclick="document.getElementById('file-input').click()">+</button>
-        <input type="text" id="msg-input" placeholder="Transmit thoughts..." autocomplete="off" oninput="handleTyping()">
-        <button type="button" class="icon-btn" title="Voice-to-Text" onclick="toggleSpeechRecognition()">🎤</button>
-        <button type="button" class="icon-btn" id="mic-btn" title="Audio Stream" onclick="toggleRecordAudio()">🎙️</button>
-        <button type="button" class="icon-btn" title="Emojis" onclick="toggleEmojiPicker()">😊</button>
-      </div>
-      <button type="submit" class="send-btn"><span class="send-btn-text">Transmit</span></button>
-
-      <div class="emoji-picker" id="emoji-picker">
-        <span onclick="addEmoji('😊')">😊</span>
-        <span onclick="addEmoji('😂')">😂</span>
-        <span onclick="addEmoji('🔥')">🔥</span>
-        <span onclick="addEmoji('👍')">👍</span>
-        <span onclick="addEmoji('❤️')">❤️</span>
-      </div>
-    </form>
-  </div>
-
-  <!-- Right User Profile Drawer -->
-  <div class="profile-drawer" id="profile-drawer">
-    <div class="profile-avatar" id="drawer-avatar">N</div>
-    <div class="profile-name" id="drawer-name">User Node</div>
-    <div class="profile-status">● Neural Link Active</div>
-
-    <div style="width:100%; margin-bottom:16px;">
-      <span style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:8px; text-transform:uppercase;">Accent Theme</span>
-      <div class="theme-selector" style="justify-content:space-around;">
-        <div class="theme-dot" style="background:#bb86fc;" onclick="setTheme('purple')"></div>
-        <div class="theme-dot" style="background:#03dac6;" onclick="setTheme('cyan')"></div>
-        <div class="theme-dot" style="background:#00e676;" onclick="setTheme('green')"></div>
-        <div class="theme-dot" style="background:#ff9100;" onclick="setTheme('orange')"></div>
-        <div class="theme-dot" style="background:#ff1744;" onclick="setTheme('red')"></div>
-      </div>
-    </div>
-
-    <div class="profile-stats-grid">
-      <div class="stat-row"><span class="stat-label">Neural Status</span><span class="stat-val" style="color:var(--green)">Online</span></div>
-      <div class="stat-row"><span class="stat-label">Messages Sent</span><span class="stat-val" id="drawer-msg-count">128</span></div>
-      <div class="stat-row"><span class="stat-label">AI Sync Score</span><span class="stat-val" style="color:var(--cyan)">98.4 / 100</span></div>
-      <div class="stat-row"><span class="stat-label">Favorite Channel</span><span class="stat-val"># General</span></div>
-      <div class="stat-row"><span class="stat-label">Encryption</span><span class="stat-val">AES-256</span></div>
-    </div>
-  </div>
-</div>
-
-<!-- Command Palette -->
-<div id="cmd-palette">
-  <input type="text" id="cmd-input" placeholder="Search chats, run commands: /room tech, /clear..." onkeydown="handleCommand(event)">
-  <ul class="cmd-list">
-    <li class="cmd-item" onclick="execCmd('/room General')"><span>Switch to # General</span><kbd>Enter</kbd></li>
-    <li class="cmd-item" onclick="execCmd('/room AI Assistant')"><span>Query AI Assistant</span><kbd>Enter</kbd></li>
-    <li class="cmd-item" onclick="execCmd('/clear')"><span>Clear Local Stream</span><kbd>Enter</kbd></li>
-  </ul>
-</div>
-
-<script src="/socket.io/socket.io.js"></script>
-<script>
-  let isLogin = true;
-  let currentUser = localStorage.getItem('mada_user') || null;
-  let currentRoom = 'General';
-  let selectedFileUrl = null;
-  let mediaRecorder = null;
-  let audioChunks = [];
-  let isRecording = false;
-  let typingTimeout = null;
-
-  const socket = io();
-
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  function playSound(type) {
-    try {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      
-      if (type === 'tick') {
-        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.05);
-      } else if (type === 'blip') {
-        osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
-      } else if (type === 'whoosh') {
-        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.2);
-      }
-    } catch(e) {}
-  }
-
-  if (currentUser) showWorkspace();
-
-  function setTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    playSound('tick');
-  }
-
-  function toggleAuthMode() {
-    isLogin = !isLogin;
-    document.querySelector('.auth-container h2').innerText = isLogin ? 'NEURAL LINK' : 'PROVISION NODE';
-    document.getElementById('auth-btn').innerText = isLogin ? 'Establish Link' : 'Register Node';
-    document.getElementById('switch-text').innerText = isLogin ? 'New Terminal Node? Register' : 'Existing Node? Establish Link';
-  }
-
-  async function handleAuth() {
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value.trim();
-    if (!username || !password) return alert('Input required.');
-
-    const endpoint = isLogin ? '/api/login' : '/api/register';
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-
-    const data = await res.json();
-    if (res.ok) {
-      if (isLogin) {
-        currentUser = data.username;
-        localStorage.setItem('mada_user', currentUser);
-        showWorkspace();
-      } else {
-        alert('Registered successfully. Proceeding to login.');
-        toggleAuthMode();
-      }
-    } else { alert(data.error || 'Authentication error.'); }
-  }
-
-  function showWorkspace() {
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('app-workspace').style.display = 'flex';
-    document.getElementById('drawer-name').innerText = currentUser;
-    document.getElementById('drawer-avatar').innerText = currentUser.substring(0, 2).toUpperCase();
-    socket.emit('user connected', currentUser);
-    socket.emit('join room', currentRoom);
-    playSound('whoosh');
-  }
-
-  function switchRoom(room, el) {
-    currentRoom = room;
-    playSound('whoosh');
-    document.getElementById('room-header').innerText = '# ' + room;
-    document.querySelectorAll('.room-item').forEach(i => i.classList.remove('active'));
-    if (el) el.classList.add('active');
-    document.getElementById('messages').innerHTML = '';
-    socket.emit('join room', currentRoom);
-    closeMobileDrawers();
-  }
-
-  function toggleMobileSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('sidebar-overlay').classList.toggle('open');
-  }
-
-  function toggleMobileProfile() {
-    document.getElementById('profile-drawer').classList.toggle('open');
-    document.getElementById('sidebar-overlay').classList.toggle('open');
-  }
-
-  function closeMobileDrawers() {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('profile-drawer').classList.remove('open');
-    document.getElementById('sidebar-overlay').classList.remove('open');
-  }
-
-  socket.on('online users update', (users) => {
-    const list = document.getElementById('online-users-list');
-    list.innerHTML = '';
-    users.forEach(u => {
-      const div = document.createElement('div');
-      div.className = 'user-item';
-      div.onclick = () => openProfile(u);
-      div.innerHTML = `
-        <div class="user-info-left">
-          <div class="avatar ${u === currentUser ? 'speaking' : ''}">${u.substring(0, 2).toUpperCase()}</div>
-          <span>${u} ${u === currentUser ? '(You)' : ''}</span>
-        </div>
-        <div class="neural-line"></div>
-        <span style="font-size:9px; color:var(--cyan);">◉ Link</span>
-      `;
-      list.appendChild(div);
-    });
-  });
-
-  function openProfile(user) {
-    document.getElementById('drawer-name').innerText = user;
-    document.getElementById('drawer-avatar').innerText = user.substring(0, 2).toUpperCase();
-    if (window.innerWidth <= 900) toggleMobileProfile();
-  }
-
-  socket.on('chat history', (history) => {
-    const list = document.getElementById('messages');
-    list.innerHTML = '';
-    if (!history || history.length === 0) {
-      renderEmptyState();
-    } else {
-      history.forEach(appendMessage);
-      scrollToBottom();
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('⚡ PWA Service Worker Registered!'))
+          .catch(err => console.log('PWA Service Worker Error:', err));
+      });
     }
-  });
+  </script>
 
-  function renderEmptyState() {
-    const list = document.getElementById('messages');
-    list.innerHTML = `
-      <div class="empty-state">
-        <div class="neural-graphic"></div>
-        <h3 style="color:#fff; font-weight:400; margin-bottom:6px;">◉ Neural Link Active</h3>
-        <p>Waiting for the first transmission...</p>
-      </div>
-    `;
-  }
-
-  socket.on('chat message', (msg) => {
-    if (msg.room === currentRoom) {
-      const empty = document.querySelector('.empty-state');
-      if (empty) empty.remove();
-      
-      appendMessage(msg);
-      playSound('blip');
-      scrollToBottom();
-    }
-  });
-
-  function parseMarkdown(text) {
-    if (!text) return '';
-    return text
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code>$1</code>');
-  }
-
-  function appendMessage(msg) {
-    const list = document.getElementById('messages');
-    const div = document.createElement('div');
-    const isOwn = msg.username === currentUser;
-    const isAI = msg.username === 'Neural AI';
-
-    div.className = `msg ${isOwn ? 'own' : ''} ${isAI ? 'ai-msg' : ''}`;
-    div.setAttribute('data-id', msg.id);
-
-    const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-    
-    let authorHtml = `
-      <div class="author">
-        <span>${msg.username} ${isAI ? '<span class="ai-badge">AI</span><div class="ai-waveform"><span></span><span></span><span></span></div>' : ''}</span>
-      </div>
-    `;
-
-    let contentHtml = authorHtml + `<div class="msg-text">${parseMarkdown(msg.message || '')}</div>`;
-    
-    if (msg.fileUrl) {
-      if (msg.fileUrl.startsWith('data:audio/')) {
-        contentHtml += `<audio controls src="${msg.fileUrl}" style="margin-top:8px; max-width:100%;"></audio>`;
-      } else if (msg.fileUrl.startsWith('data:image/')) {
-        contentHtml += `<img src="${msg.fileUrl}" loading="lazy">`;
-      }
-    }
-
-    if (isAI) {
-      contentHtml += `
-        <div class="ai-suggestions">
-          <button class="sug-btn" onclick="quickAISuggest('Summarize message')">Summarize</button>
-          <button class="sug-btn" onclick="quickAISuggest('Explain simply')">Explain</button>
-          <button class="sug-btn" onclick="quickAISuggest('Generate code example')">Code</button>
-        </div>
-      `;
-    }
-
-    contentHtml += `
-      <div class="ai-toolbar">
-        <button class="ai-tool-btn" onclick="readAloud(\`${msg.message || ''}\`)">🔊 Read</button>
-        <button class="ai-tool-btn" onclick="translateMsg(${msg.id})">🌍 Translate</button>
-        <button class="ai-tool-btn" onclick="addReaction(${msg.id}, '❤️')">❤️</button>
-        <button class="ai-tool-btn" onclick="addReaction(${msg.id}, '🔥')">🔥</button>
-      </div>
-    `;
-
-    if (isOwn) {
-      contentHtml += `<div class="msg-actions"><span class="act-btn" onclick="editMsg(${msg.id}, \`${msg.message || ''}\`)">✏️</span><span class="act-btn" onclick="deleteMsg(${msg.id})">🗑️</span></div>`;
-    }
-
-    contentHtml += `<div class="time">${timeStr}</div>`;
-    div.innerHTML = contentHtml;
-    list.appendChild(div);
-  }
-
-  function quickAISuggest(promptText) {
-    document.getElementById('msg-input').value = `@AI ${promptText}`;
-    sendMessage();
-  }
-
-  function addReaction(id, emoji) {
-    socket.emit('add reaction', { id, room: currentRoom, emoji });
-  }
-
-  function readAloud(text) {
-    if ('speechSynthesis' in window && text) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      speechSynthesis.speak(utterance);
-    }
-  }
-
-  function translateMsg(id) {
-    const el = document.querySelector(`[data-id="${id}"] .msg-text`);
-    if (el) {
-      el.innerText = "[Neural Translation] " + el.innerText;
-    }
-  }
-
-  function toggleSpeechRecognition() {
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      return alert('Speech recognition not supported in this browser.');
-    }
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.onresult = (event) => {
-      document.getElementById('msg-input').value += ' ' + event.results[0][0].transcript;
-    };
-    recognition.start();
-  }
-
-  function handleTyping() {
-    socket.emit('typing', { username: currentUser, room: currentRoom });
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => socket.emit('stop typing', { username: currentUser, room: currentRoom }), 1500);
-  }
-
-  socket.on('user typing', (data) => {
-    if (data.room === currentRoom) {
-      document.getElementById('ai-presence').innerText = data.text || `${data.username} is typing...`;
-    }
-  });
-
-  socket.on('user stop typing', (data) => {
-    if (data.room === currentRoom) document.getElementById('ai-presence').innerText = '';
-  });
-
-  socket.on('message edited', (data) => {
-    const msgEl = document.querySelector(`[data-id="${data.id}"] .msg-text`);
-    if (msgEl) msgEl.innerText = data.newMessage + ' (edited)';
-  });
-
-  socket.on('message deleted', (data) => {
-    const msgEl = document.querySelector(`[data-id="${data.id}"]`);
-    if (msgEl) msgEl.remove();
-  });
-
-  function sendMessage(e) {
-    if (e) e.preventDefault();
-    const input = document.getElementById('msg-input');
-    const text = input.value.trim();
-    if ((text || selectedFileUrl) && currentUser) {
-      socket.emit('chat message', { room: currentRoom, username: currentUser, message: text, fileUrl: selectedFileUrl });
-      socket.emit('stop typing', { username: currentUser, room: currentRoom });
-      input.value = '';
-      selectedFileUrl = null;
-    }
-  }
-
-  function editMsg(id, oldText) {
-    const newText = prompt('Update message:', oldText);
-    if (newText && newText !== oldText) socket.emit('edit message', { id, room: currentRoom, username: currentUser, newMessage: newText });
-  }
-
-  function deleteMsg(id) {
-    if (confirm('Terminate message?')) socket.emit('delete message', { id, room: currentRoom, username: currentUser });
-  }
-
-  function handleFileUpload(e) {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = function(evt) { selectedFileUrl = evt.target.result; sendMessage(); };
-      reader.readAsDataURL(file);
-    }
-  }
-
-  async function toggleRecordAudio() {
-    const micBtn = document.getElementById('mic-btn');
-    if (!isRecording) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-        mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
-        mediaRecorder.onstop = () => {
-          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-          const reader = new FileReader();
-          reader.onloadend = () => { selectedFileUrl = reader.result; sendMessage(); };
-          reader.readAsDataURL(audioBlob);
-          stream.getTracks().forEach(track => track.stop());
-        };
-        mediaRecorder.start();
-        isRecording = true;
-        micBtn.classList.add('recording');
-      } catch (err) { alert('Microphone access denied.'); }
-    } else {
-      mediaRecorder.stop();
-      isRecording = false;
-      micBtn.classList.remove('recording');
-    }
-  }
-
-  function toggleEmojiPicker() {
-    const picker = document.getElementById('emoji-picker');
-    picker.style.display = picker.style.display === 'grid' ? 'none' : 'grid';
-  }
-
-  function addEmoji(emoji) {
-    document.getElementById('msg-input').value += emoji;
-    document.getElementById('emoji-picker').style.display = 'none';
-  }
-
-  function scrollToBottom() {
-    const list = document.getElementById('messages');
-    list.scrollTop = list.scrollHeight;
-  }
-
-  /* Command Palette */
-  window.addEventListener('keydown', (e) => {
-    if (e.ctrlKey && e.key.toLowerCase() === 'k') {
-      e.preventDefault();
-      const palette = document.getElementById('cmd-palette');
-      palette.style.display = palette.style.display === 'block' ? 'none' : 'block';
-      if (palette.style.display === 'block') document.getElementById('cmd-input').focus();
-    } else if (e.key === 'Escape') {
-      document.getElementById('cmd-palette').style.display = 'none';
-    }
-  });
-
-  function handleCommand(e) {
-    if (e.key === 'Enter') {
-      execCmd(e.target.value.trim());
-      e.target.value = '';
-    }
-  }
-
-  function execCmd(val) {
-    if (val === '/clear') {
-      document.getElementById('messages').innerHTML = '';
-      renderEmptyState();
-    } else if (val.startsWith('/room ')) {
-      switchRoom(val.replace('/room ', '').trim(), null);
-    }
-    document.getElementById('cmd-palette').style.display = 'none';
-  }
-
-  /* Interactive Canvas */
-  const canvas = document.getElementById('ambient-canvas');
-  const ctx = canvas.getContext('2d');
-  function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-  window.addEventListener('resize', resizeCanvas);
-  resizeCanvas();
-
-  let pArr = Array.from({length: 40}, () => ({
-    x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-    vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4
-  }));
-
-  function drawAmbient() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    
-    for (let i = 0; i < pArr.length; i++) {
-      for (let j = i + 1; j < pArr.length; j++) {
-        let dx = pArr[i].x - pArr[j].x;
-        let dy = pArr[i].y - pArr[j].y;
-        let dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 130) {
-          ctx.beginPath();
-          ctx.strokeStyle = `rgba(187, 134, 252, ${0.12 - dist / 1300})`;
-          ctx.lineWidth = 0.8;
-          ctx.moveTo(pArr[i].x, pArr[i].y);
-          ctx.lineTo(pArr[j].x, pArr[j].y);
-          ctx.stroke();
-        }
-      }
-    }
-
-    ctx.fillStyle = '#ffffff';
-    pArr.forEach(p => {
-      p.x += p.vx; p.y += p.vy;
-      if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-      if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-      ctx.beginPath(); ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2); ctx.fill();
-    });
-    requestAnimationFrame(drawAmbient);
-  }
-  drawAmbient();
-</script>
-
+  <!-- Client JavaScript Logic -->
+  <script src="/script.js"></script>
 </body>
 </html>
