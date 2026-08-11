@@ -26,9 +26,7 @@ if (process.env.GROQ_API_KEY) {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'Public')));
 
-// ---------------------------------------------------------
-// MongoDB & Mongoose Schemas (Permanent Database)
-// ---------------------------------------------------------
+// MongoDB Connection
 mongoose.connect(MONGODB_URI)
   .then(() => console.log('⚡ Connected to Permanent Cloud Database (MongoDB Atlas)'))
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
@@ -51,12 +49,9 @@ const messageSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 const Message = mongoose.model('Message', messageSchema);
 
-// Track online users in memory
 let onlineUsers = new Set();
 
-// ---------------------------------------------------------
-// Auth API Endpoints
-// ---------------------------------------------------------
+// Auth Routes
 app.post('/api/register', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -93,9 +88,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------
-// Socket.io Real-Time Event Handlers
-// ---------------------------------------------------------
+// Socket Events
 io.on('connection', (socket) => {
   let currentUser = null;
 
@@ -107,7 +100,6 @@ io.on('connection', (socket) => {
 
   socket.on('join room', async (room) => {
     socket.join(room);
-    
     try {
       const history = await Message.find({ room }).sort({ timestamp: 1 }).limit(100);
       socket.emit('chat history', history);
@@ -120,13 +112,7 @@ io.on('connection', (socket) => {
     const { room, username, message, fileUrl } = data;
     const msgId = Date.now();
 
-    const newMsg = new Message({
-      id: msgId,
-      room,
-      username,
-      message,
-      fileUrl
-    });
+    const newMsg = new Message({ id: msgId, room, username, message, fileUrl });
 
     try {
       await newMsg.save();
@@ -134,40 +120,15 @@ io.on('connection', (socket) => {
 
       if (groq && (message.includes('@AI') || room === 'AI Assistant')) {
         const cleanPrompt = message.replace('@AI', '').trim();
-        if (cleanPrompt) {
-          triggerGroqAI(room, cleanPrompt);
-        }
+        if (cleanPrompt) triggerGroqAI(room, cleanPrompt);
       }
     } catch (err) {
       console.error('Error saving chat message:', err);
     }
   });
 
-  socket.on('edit message', async (data) => {
-    try {
-      await Message.updateOne({ id: data.id, username: data.username }, { message: data.newMessage });
-      io.to(data.room).emit('message edited', data);
-    } catch (err) {
-      console.error('Error editing message:', err);
-    }
-  });
-
-  socket.on('delete message', async (data) => {
-    try {
-      await Message.deleteOne({ id: data.id, username: data.username });
-      io.to(data.room).emit('message deleted', data);
-    } catch (err) {
-      console.error('Error deleting message:', err);
-    }
-  });
-
-  socket.on('typing', (data) => {
-    socket.to(data.room).emit('user typing', data);
-  });
-
-  socket.on('stop typing', (data) => {
-    socket.to(data.room).emit('user stop typing', data);
-  });
+  socket.on('typing', (data) => socket.to(data.room).emit('user typing', data));
+  socket.on('stop typing', (data) => socket.to(data.room).emit('user stop typing', data));
 
   socket.on('disconnect', () => {
     if (currentUser) {
@@ -177,7 +138,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// Helper Function for AI Processing
 async function triggerGroqAI(room, prompt) {
   try {
     const completion = await groq.chat.completions.create({
@@ -187,15 +147,8 @@ async function triggerGroqAI(room, prompt) {
       max_tokens: 500
     });
 
-    const aiText = completion.choices[0]?.message?.content || 'Neural processing completed without output.';
-    const aiMsgId = Date.now() + 1;
-
-    const aiMsg = new Message({
-      id: aiMsgId,
-      room,
-      username: 'Neural AI',
-      message: aiText
-    });
+    const aiText = completion.choices[0]?.message?.content || 'Neural processing completed.';
+    const aiMsg = new Message({ id: Date.now() + 1, room, username: 'Neural AI', message: aiText });
 
     await aiMsg.save();
     io.to(room).emit('chat message', aiMsg);
@@ -204,7 +157,6 @@ async function triggerGroqAI(room, prompt) {
   }
 }
 
-// Start Web Server
 server.listen(PORT, () => {
   console.log(`🚀 NEURAL LINK v2.0 server running on port ${PORT}`);
 });
