@@ -1,88 +1,58 @@
 const socket = io();
 
-// UI References
+// UI Elements
 const messagesContainer = document.getElementById('messages-container');
-const emptyState = document.getElementById('empty-state');
 const chatForm = document.getElementById('chat-form');
 const messageInput = document.getElementById('message-input');
 const typingIndicator = document.getElementById('typing-indicator');
-const headerRoomTitle = document.getElementById('header-room-title');
-const channelButtons = document.querySelectorAll('.channel-btn');
-const profileUsername = document.getElementById('profile-username');
-const userAvatar = document.getElementById('user-avatar');
-const onlineUsersList = document.getElementById('online-users-list');
+const chatHeaderTitle = document.getElementById('chat-header-title');
+const roomButtons = document.querySelectorAll('.room-btn');
 
-// Drawer Elements
-const openChannelsBtn = document.getElementById('open-channels-btn');
-const closeChannelsBtn = document.getElementById('close-channels-btn');
-const channelsDrawer = document.getElementById('channels-drawer');
-const channelsBackdrop = document.getElementById('channels-drawer-backdrop');
-
-const openProfileBtn = document.getElementById('open-profile-btn');
-const closeProfileBtn = document.getElementById('close-profile-btn');
-const profileDrawer = document.getElementById('profile-drawer');
-const profileBackdrop = document.getElementById('profile-drawer-backdrop');
+// User profile elements
+const footerUsername = document.getElementById('footer-username');
+const footerHandle = document.getElementById('footer-handle');
+const footerAvatar = document.getElementById('footer-user-avatar');
+const rightProfileUsername = document.getElementById('right-profile-username');
+const rightUserAvatar = document.getElementById('right-user-avatar');
 
 let currentRoom = 'General';
-let currentUser = localStorage.getItem('chat_username') || 'Ankan';
+let currentUser = localStorage.getItem('chat_username') || 'Test6';
 localStorage.setItem('chat_username', currentUser);
 
-if (profileUsername) profileUsername.innerText = currentUser;
-if (userAvatar) userAvatar.innerText = currentUser.charAt(0).toUpperCase();
+// Populate user profile info
+function setUserProfile(name) {
+  if (footerUsername) footerUsername.innerText = name;
+  if (footerHandle) footerHandle.innerText = `@${name.toLowerCase().replace(/\s+/g, '')}`;
+  if (footerAvatar) footerAvatar.innerText = name.substring(0, 2).toUpperCase();
+  if (rightProfileUsername) rightProfileUsername.innerText = name;
+  if (rightUserAvatar) rightUserAvatar.innerText = name.substring(0, 2).toUpperCase();
+}
+setUserProfile(currentUser);
 
-// Connect and join room
+// Join default channel
 socket.emit('user connected', currentUser);
 socket.emit('join room', currentRoom);
 
-// Drawer Controls
-function toggleDrawer(drawer, backdrop, show) {
-  if (!drawer || !backdrop) return;
-  if (show) {
-    backdrop.classList.remove('hidden');
-    drawer.classList.remove('-translate-x-full', 'translate-x-full');
-  } else {
-    backdrop.classList.add('hidden');
-    if (drawer === channelsDrawer) drawer.classList.add('-translate-x-full');
-    if (drawer === profileDrawer) drawer.classList.add('translate-x-full');
-  }
-}
-
-if (openChannelsBtn) openChannelsBtn.addEventListener('click', () => toggleDrawer(channelsDrawer, channelsBackdrop, true));
-if (closeChannelsBtn) closeChannelsBtn.addEventListener('click', () => toggleDrawer(channelsDrawer, channelsBackdrop, false));
-if (channelsBackdrop) channelsBackdrop.addEventListener('click', () => toggleDrawer(channelsDrawer, channelsBackdrop, false));
-
-if (openProfileBtn) openProfileBtn.addEventListener('click', () => toggleDrawer(profileDrawer, profileBackdrop, true));
-if (closeProfileBtn) closeProfileBtn.addEventListener('click', () => toggleDrawer(profileDrawer, profileBackdrop, false));
-if (profileBackdrop) profileBackdrop.addEventListener('click', () => toggleDrawer(profileDrawer, profileBackdrop, false));
-
-// Channel Switching
-channelButtons.forEach(btn => {
+// Channel switching
+roomButtons.forEach(btn => {
   btn.addEventListener('click', () => {
     const targetRoom = btn.getAttribute('data-room');
     if (targetRoom && targetRoom !== currentRoom) {
       currentRoom = targetRoom;
-      if (headerRoomTitle) headerRoomTitle.innerText = `# ${currentRoom}`;
-      
-      channelButtons.forEach(b => {
-        b.classList.remove('bg-purple-500/10', 'text-purple-300');
-        b.classList.add('text-slate-400');
+      chatHeaderTitle.innerHTML = `<span># ${currentRoom}</span>`;
+
+      roomButtons.forEach(b => {
+        b.className = 'room-btn w-full flex items-center px-3 py-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200 text-xs';
       });
-      btn.classList.add('bg-purple-500/10', 'text-purple-300');
-      btn.classList.remove('text-slate-400');
+      btn.className = 'room-btn w-full flex items-center justify-between px-3 py-2 rounded-xl bg-purple-600 text-white font-medium shadow-md shadow-purple-600/30 text-xs';
 
       messagesContainer.innerHTML = '';
-      if (emptyState) {
-        messagesContainer.appendChild(emptyState);
-        emptyState.style.display = 'flex';
-      }
-
       socket.emit('join room', currentRoom);
-      toggleDrawer(channelsDrawer, channelsBackdrop, false);
     }
   });
 });
 
-// Transmit Message Form
+// Transmit Message
 chatForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const text = messageInput.value.trim();
@@ -94,7 +64,6 @@ chatForm.addEventListener('submit', (e) => {
     message: text
   };
 
-  // Send to socket server
   socket.emit('chat message', msgPayload);
   messageInput.value = '';
 });
@@ -103,57 +72,104 @@ chatForm.addEventListener('submit', (e) => {
 socket.on('chat history', (history) => {
   messagesContainer.innerHTML = '';
   if (history && history.length > 0) {
-    if (emptyState) emptyState.style.display = 'none';
     history.forEach(msg => appendMessage(msg));
-  } else if (emptyState) {
-    messagesContainer.appendChild(emptyState);
-    emptyState.style.display = 'flex';
+  } else {
+    // Show welcome interactive AI assistant message if channel is fresh
+    renderAIWelcome();
   }
   scrollToBottom();
 });
 
 socket.on('chat message', (msg) => {
   if (msg.room === currentRoom) {
-    if (emptyState) emptyState.style.display = 'none';
     appendMessage(msg);
     scrollToBottom();
   }
 });
 
-socket.on('online users update', (users) => {
-  if (onlineUsersList) {
-    onlineUsersList.innerHTML = users.map(u => `
-      <li class="flex items-center space-x-2">
-        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-        <span>${u}</span>
-      </li>
-    `).join('');
-  }
-});
-
-// Render Message
+// Render dynamic Cyber / AI Message Bubble
 function appendMessage(msg) {
   const isMe = msg.username === currentUser;
-  const isAI = msg.username === 'Neural AI';
+  const isAI = msg.username === 'Neural AI' || msg.username === 'Nova (AI)';
+  const timeStr = new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  const div = document.createElement('div');
-  div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} my-1.5`;
+  const wrapper = document.createElement('div');
+  wrapper.className = `flex ${isMe ? 'justify-end' : 'justify-start'} items-start space-x-3 my-2`;
 
-  const metaSpan = `<span class="text-[10px] text-slate-500 mb-0.5 px-1">${msg.username}</span>`;
-  
-  let bubbleStyle = isMe 
-    ? 'bg-[#7c3aed] text-white rounded-2xl rounded-tr-sm' 
-    : 'bg-[#181924] text-slate-200 border border-white/5 rounded-2xl rounded-tl-sm';
-    
   if (isAI) {
-    bubbleStyle = 'bg-cyan-950/40 text-cyan-200 border border-cyan-500/30 rounded-2xl';
+    wrapper.innerHTML = `
+      <div class="w-9 h-9 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center justify-center font-bold text-xs flex-shrink-0">
+        AI
+      </div>
+      <div class="max-w-[75%] bg-[#0e1726]/80 rounded-2xl p-4 neon-border-ai text-slate-200 text-xs leading-relaxed space-y-3 backdrop-blur-md">
+        <div class="flex items-center space-x-2">
+          <span class="font-bold text-cyan-400">Nova (AI)</span>
+          <span class="bg-cyan-500/20 text-cyan-300 text-[9px] font-bold px-1.5 py-0.5 rounded">AI</span>
+        </div>
+        <div>${msg.message}</div>
+        <div class="flex flex-wrap gap-1.5 pt-1">
+          <button onclick="sendQuickPrompt('Summarize')" class="px-2.5 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 rounded-lg text-[10px]">Summarize</button>
+          <button onclick="sendQuickPrompt('Explain')" class="px-2.5 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 rounded-lg text-[10px]">Explain</button>
+          <button onclick="sendQuickPrompt('Code')" class="px-2.5 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 rounded-lg text-[10px]">Code</button>
+          <button onclick="sendQuickPrompt('Analyze')" class="px-2.5 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 rounded-lg text-[10px]">Analyze</button>
+        </div>
+        <div class="flex items-center justify-between text-[10px] text-slate-500 pt-1">
+          <div class="flex space-x-2">
+            <span class="hover:text-rose-400 cursor-pointer">❤️ 12</span>
+            <span class="hover:text-amber-400 cursor-pointer">🔥 7</span>
+            <span class="hover:text-cyan-400 cursor-pointer">🚀 3</span>
+          </div>
+          <span>${timeStr}</span>
+        </div>
+      </div>
+    `;
+  } else if (isMe) {
+    wrapper.innerHTML = `
+      <div class="max-w-[70%] bg-[#1a1233]/90 rounded-2xl p-3.5 neon-border-user text-slate-100 text-xs leading-relaxed space-y-1">
+        <div class="flex justify-between items-center text-[10px] text-purple-300/80 mb-1">
+          <span class="font-semibold">${msg.username}</span>
+          <span class="text-[9px]">${timeStr} ✓✓</span>
+        </div>
+        <div>${msg.message}</div>
+      </div>
+    `;
+  } else {
+    wrapper.innerHTML = `
+      <div class="w-8 h-8 rounded-full bg-purple-600/20 text-purple-300 flex items-center justify-center font-bold text-xs flex-shrink-0">
+        ${msg.username.substring(0, 2).toUpperCase()}
+      </div>
+      <div class="max-w-[70%] bg-[#121422] rounded-2xl p-3.5 border border-white/5 text-slate-200 text-xs space-y-1">
+        <div class="flex justify-between items-center text-[10px] text-slate-400 mb-1">
+          <span class="font-semibold text-slate-300">${msg.username}</span>
+          <span class="text-[9px] text-slate-500">${timeStr}</span>
+        </div>
+        <div>${msg.message}</div>
+      </div>
+    `;
   }
 
-  const contentDiv = `<div class="px-3.5 py-2 text-sm max-w-[85%] leading-relaxed ${bubbleStyle}">${msg.message}</div>`;
-
-  div.innerHTML = metaSpan + contentDiv;
-  messagesContainer.appendChild(div);
+  messagesContainer.appendChild(wrapper);
 }
+
+function renderAIWelcome() {
+  const welcomePayload = {
+    room: currentRoom,
+    username: 'Nova (AI)',
+    message: "Hello! 👋 I'm Neural AI, your advanced cybernetic assistant. I can help you with anything: coding, research, summaries, images, data, and more. What would you like to explore today?",
+    timestamp: Date.now()
+  };
+  appendMessage(welcomePayload);
+}
+
+// Quick Suggestion Chips Handler
+window.sendQuickPrompt = function(action) {
+  const prompt = `@AI ${action} the latest neural network updates`;
+  socket.emit('chat message', {
+    room: currentRoom,
+    username: currentUser,
+    message: prompt
+  });
+};
 
 function scrollToBottom() {
   messagesContainer.scrollTop = messagesContainer.scrollHeight;

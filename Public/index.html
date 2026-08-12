@@ -2,139 +2,452 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Neural Link</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEURAL LINK | Connect. Transmit. Evolve.</title>
 
   <!-- PWA Settings -->
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#0a0a0f">
+  <meta name="theme-color" content="#0d0e17">
 
+  <!-- Tailwind CSS & Google Fonts -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/socket.io/socket.io.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 
   <style>
+    :root {
+      --accent-purple: #8b5cf6;
+      --accent-cyan: #06b6d4;
+      --bg-darkest: #07080d;
+      --bg-panel: #0d0e17;
+      --bg-card: #131522;
+      --border-subtle: rgba(255, 255, 255, 0.07);
+    }
     body {
-      font-family: 'Inter', sans-serif;
-      background-color: #0b0c10;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-darkest);
       color: #e2e8f0;
     }
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
     
-    /* Backdrop Drawer Overlay */
-    .drawer-overlay {
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(4px);
+    /* Scrollbars */
+    .custom-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 4px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.4); }
+
+    /* Neon Gradients and Glows */
+    .glow-purple { box-shadow: 0 0 20px rgba(139, 92, 246, 0.35); }
+    .glow-cyan { box-shadow: 0 0 20px rgba(6, 182, 212, 0.35); }
+    .neon-border-ai {
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      box-shadow: inset 0 0 15px rgba(6, 182, 212, 0.1), 0 0 15px rgba(6, 182, 212, 0.15);
+    }
+    .neon-border-user {
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      box-shadow: inset 0 0 15px rgba(139, 92, 246, 0.1), 0 0 15px rgba(139, 92, 246, 0.15);
+    }
+
+    /* Waveform Animation */
+    @keyframes soundwave {
+      0%, 100% { height: 4px; }
+      50% { height: 18px; }
+    }
+    .wave-bar {
+      width: 2px;
+      background-color: #8b5cf6;
+      border-radius: 9999px;
+      animation: soundwave 1.2s ease-in-out infinite;
     }
   </style>
 </head>
-<body class="h-screen w-screen flex flex-col justify-between overflow-hidden select-none bg-[#0a0a0f]">
+<body class="h-screen w-screen overflow-hidden flex select-none text-slate-300">
 
-  <!-- Top App Bar -->
-  <header class="h-14 bg-[#12131a] border-b border-white/5 px-4 flex items-center justify-between z-20 flex-shrink-0">
-    <button id="open-channels-btn" class="p-2 text-slate-400 hover:text-white rounded-lg focus:outline-none">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-    </button>
+  <!-- ======================================================== -->
+  <!-- COLUMN 1: LEFT NAVIGATION BAR (Channels, Links, Status) -->
+  <!-- ======================================================== -->
+  <aside class="w-64 bg-[#0a0b12] border-r border-white/5 flex flex-col justify-between hidden lg:flex flex-shrink-0">
     
-    <div class="flex items-center space-x-2">
-      <span class="font-semibold text-sm text-slate-200" id="header-room-title"># General</span>
-    </div>
-
-    <button id="open-profile-btn" class="p-2 text-slate-400 hover:text-white rounded-lg focus:outline-none">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-    </button>
-  </header>
-
-  <!-- Sub-header Notice -->
-  <div class="bg-[#18122B]/80 border-b border-purple-500/20 px-3 py-1.5 text-[11px] text-purple-300 flex items-center justify-center space-x-1.5 flex-shrink-0">
-    <span>📌</span>
-    <span><strong>Notice:</strong> Neural Link v2.0 deployed. High-speed quantum AI active.</span>
-  </div>
-
-  <!-- Messages Chat Feed -->
-  <main id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar flex flex-col">
-    <!-- Centered Empty State -->
-    <div id="empty-state" class="m-auto text-center text-slate-500 py-12 flex flex-col items-center">
-      <div class="flex items-center space-x-2 text-xs text-slate-400 font-medium mb-1">
-        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-        <span>Neural Link Active</span>
-      </div>
-      <p class="text-xs text-slate-600">Waiting for the first transmission...</p>
-    </div>
-  </main>
-
-  <!-- Typing Indicator -->
-  <div id="typing-indicator" class="px-4 py-0.5 text-[11px] text-slate-500 italic h-4 flex-shrink-0"></div>
-
-  <!-- Bottom Capsule Input Bar -->
-  <footer class="p-3 bg-[#0a0a0f] flex-shrink-0">
-    <form id="chat-form" class="flex items-center bg-[#13141d] rounded-full border border-white/10 px-3 py-1.5 space-x-2 shadow-lg focus-within:border-purple-500/50 transition">
-      
-      <!-- Attachment Button -->
-      <button type="button" class="text-slate-400 hover:text-white p-1 text-sm font-semibold">
-        +
-      </button>
-
-      <!-- Input Field -->
-      <input 
-        type="text" 
-        id="message-input" 
-        placeholder="Transmit thoughts..." 
-        autocomplete="off" 
-        class="flex-1 bg-transparent text-sm text-slate-200 placeholder-slate-500 focus:outline-none"
-      >
-
-      <!-- Action Buttons -->
-      <div class="flex items-center space-x-1.5 text-slate-400">
-        <button type="button" id="stt-btn" class="p-1 hover:text-cyan-400 text-xs transition" title="Speech to Text">🎤</button>
-        <button type="button" id="voice-rec-btn" class="p-1 hover:text-cyan-400 text-xs transition" title="Voice Note">🎙️</button>
-        <button type="button" id="emoji-btn" class="p-1 hover:text-yellow-400 text-xs transition">😊</button>
+    <!-- Header Brand -->
+    <div>
+      <div class="p-4 border-b border-white/5 flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/20 font-bold">
+          🧠
+        </div>
+        <div>
+          <h1 class="font-extrabold text-sm tracking-wider text-white">NEURAL LINK</h1>
+          <p class="text-[9px] text-purple-400 font-semibold tracking-widest uppercase">Connect. Transmit. Evolve.</p>
+        </div>
       </div>
 
-      <!-- Transmit Button -->
-      <button 
-        type="submit" 
-        class="bg-[#8b5cf6] hover:bg-[#7c3aed] text-white w-8 h-8 rounded-full flex items-center justify-center transition shadow-md flex-shrink-0"
-      >
-        <svg class="w-3.5 h-3.5 fill-current transform rotate-90 translate-x-[1px]" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
-      </button>
-    </form>
-  </footer>
+      <!-- Quick Modules -->
+      <div class="p-3 space-y-1 text-xs">
+        <button class="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-purple-600/10 text-purple-300 font-medium border border-purple-500/20">
+          <div class="flex items-center space-x-2.5">
+            <span>💬</span> <span>Chats</span>
+          </div>
+          <span class="bg-purple-600 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">6</span>
+        </button>
+        <button class="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200">
+          <span>👥</span> <span>Communities</span>
+        </button>
+        <button class="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200">
+          <span>⚡</span> <span>AI Assistants</span>
+        </button>
+        <button class="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200">
+          <span>👤</span> <span>Contacts</span>
+        </button>
+        <button class="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200">
+          <span>🔖</span> <span>Saved Messages</span>
+        </button>
+        <button class="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200">
+          <span>⚙️</span> <span>Settings</span>
+        </button>
+      </div>
 
-  <!-- Left Drawer: Channels Navigation -->
-  <div id="channels-drawer-backdrop" class="fixed inset-0 drawer-overlay z-40 hidden"></div>
-  <aside id="channels-drawer" class="fixed inset-y-0 left-0 w-72 bg-[#12131a] border-r border-white/10 z-50 transform -translate-x-full transition-transform duration-200 ease-in-out flex flex-col">
-    <div class="p-4 border-b border-white/10 flex justify-between items-center">
-      <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Channels</span>
-      <button id="close-channels-btn" class="text-slate-400 hover:text-white text-sm">✕</button>
+      <!-- Channels List -->
+      <div class="px-3 pt-2">
+        <div class="flex items-center justify-between px-2 mb-1.5 text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+          <span>Channels</span>
+          <button class="hover:text-white">+</button>
+        </div>
+        <div class="space-y-0.5 text-xs">
+          <button data-room="General" class="room-btn w-full flex items-center justify-between px-3 py-2 rounded-xl bg-purple-600 text-white font-medium shadow-md shadow-purple-600/30">
+            <span># General</span>
+            <span class="text-xs">›</span>
+          </button>
+          <button data-room="Cyberpunk Hub" class="room-btn w-full flex items-center px-3 py-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200">
+            <span># Cyberpunk Hub</span>
+          </button>
+          <button data-room="Tech & AI" class="room-btn w-full flex items-center px-3 py-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200">
+            <span># Tech & AI</span>
+          </button>
+          <button data-room="Gaming Lounge" class="room-btn w-full flex items-center px-3 py-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200">
+            <span># Gaming Lounge</span>
+          </button>
+          <button data-room="Creative Lab" class="room-btn w-full flex items-center px-3 py-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200">
+            <span># Creative Lab</span>
+          </button>
+          <button data-room="Memes & Fun" class="room-btn w-full flex items-center px-3 py-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200">
+            <span># Memes & Fun</span>
+          </button>
+        </div>
+      </div>
     </div>
-    <div class="p-3 space-y-1 overflow-y-auto flex-1">
-      <button data-room="General" class="channel-btn w-full text-left px-3 py-2 rounded-lg bg-purple-500/10 text-purple-300 font-medium text-sm"># General</button>
-      <button data-room="Cyber Lounge" class="channel-btn w-full text-left px-3 py-2 rounded-lg text-slate-400 hover:bg-white/5 hover:text-slate-200 text-sm"># Cyber Lounge</button>
-      <button data-room="Dev Protocol" class="channel-btn w-full text-left px-3 py-2 rounded-lg text-slate-400 hover:bg-white/5 hover:text-slate-200 text-sm"># Dev Protocol</button>
-      <button data-room="AI Assistant" class="channel-btn w-full text-left px-3 py-2 rounded-lg text-cyan-400 hover:bg-cyan-500/10 text-sm">⚡ # AI Assistant</button>
+
+    <!-- Active Nodes & Telemetry Footer -->
+    <div class="p-3 border-t border-white/5 space-y-3">
+      <div>
+        <div class="flex items-center justify-between px-1 mb-2 text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+          <span>Active Links</span>
+          <span class="text-emerald-400 text-xs">●</span>
+        </div>
+        <div class="space-y-2 text-xs" id="active-links-list">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-[10px]">AI</span>
+              <span class="text-slate-300">Nova (AI)</span>
+            </div>
+            <span class="text-[10px] text-emerald-400 font-medium">● Online</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Network Stats Box -->
+      <div class="bg-[#10121d] p-2.5 rounded-xl border border-white/5 text-[11px] space-y-1">
+        <div class="flex items-center justify-between text-emerald-400 font-medium">
+          <span class="flex items-center space-x-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span><span>Neural Link Stable</span></span>
+        </div>
+        <div class="flex justify-between text-slate-500 text-[10px] pt-1">
+          <span>Latency: <strong class="text-slate-300">12 ms</strong></span>
+          <span>Loss: <strong class="text-slate-300">0%</strong></span>
+        </div>
+      </div>
+
+      <!-- Current User Footer Pill -->
+      <div class="flex items-center justify-between pt-1">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center font-bold text-white text-xs" id="footer-user-avatar">
+            TE
+          </div>
+          <div>
+            <div class="text-xs font-semibold text-white leading-tight" id="footer-username">Test6</div>
+            <div class="text-[10px] text-slate-500" id="footer-handle">@test6</div>
+          </div>
+        </div>
+        <button class="text-slate-500 hover:text-slate-300">⋮</button>
+      </div>
     </div>
   </aside>
 
-  <!-- Right Drawer: User Profile & Online List -->
-  <div id="profile-drawer-backdrop" class="fixed inset-0 drawer-overlay z-40 hidden"></div>
-  <aside id="profile-drawer" class="fixed inset-y-0 right-0 w-72 bg-[#12131a] border-l border-white/10 z-50 transform translate-x-full transition-transform duration-200 ease-in-out flex flex-col">
-    <div class="p-4 border-b border-white/10 flex justify-between items-center">
-      <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Node Status</span>
-      <button id="close-profile-btn" class="text-slate-400 hover:text-white text-sm">✕</button>
+  <!-- ======================================================== -->
+  <!-- COLUMN 2: SECONDARY FEED / INBOX LIST                   -->
+  <!-- ======================================================== -->
+  <section class="w-80 bg-[#0d0e17] border-r border-white/5 flex flex-col hidden md:flex flex-shrink-0">
+    <!-- Search Bar -->
+    <div class="p-3 border-b border-white/5">
+      <div class="flex items-center bg-[#141624] px-3 py-2 rounded-xl border border-white/5 space-x-2">
+        <span class="text-slate-500 text-xs">🔍</span>
+        <input type="text" placeholder="Search or start new chat..." class="bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none w-full">
+        <span class="text-slate-500 text-xs">⚙️</span>
+      </div>
+      <!-- Filter Chips -->
+      <div class="flex space-x-1.5 mt-2.5 text-[11px]">
+        <button class="px-2.5 py-1 rounded-full bg-purple-600 text-white font-medium">All</button>
+        <button class="px-2.5 py-1 rounded-full bg-white/5 text-slate-400 hover:bg-white/10">Unread</button>
+        <button class="px-2.5 py-1 rounded-full bg-white/5 text-slate-400 hover:bg-white/10">Groups</button>
+        <button class="px-2.5 py-1 rounded-full bg-white/5 text-slate-400 hover:bg-white/10">Bots</button>
+      </div>
     </div>
-    <div class="p-4 space-y-4">
-      <div class="text-center py-2">
-        <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-600 mx-auto flex items-center justify-center font-bold text-lg text-white mb-2 shadow-lg" id="user-avatar">?</div>
-        <h3 id="profile-username" class="font-medium text-slate-200 text-sm">Guest Operator</h3>
-        <p class="text-[11px] text-emerald-400 mt-0.5">● Connected</p>
+
+    <!-- Active Chats Stream List -->
+    <div class="flex-1 overflow-y-auto custom-scroll p-2 space-y-1">
+      
+      <!-- Nova AI Item -->
+      <div class="flex items-center justify-between p-2.5 rounded-xl bg-purple-600/10 border border-purple-500/20 cursor-pointer">
+        <div class="flex items-center space-x-3">
+          <div class="relative">
+            <div class="w-10 h-10 rounded-full bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-bold text-xs border border-cyan-500/40">AI</div>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 absolute bottom-0 right-0 border-2 border-[#0d0e17]"></span>
+          </div>
+          <div>
+            <div class="text-xs font-semibold text-white">Nova (AI)</div>
+            <div class="text-[11px] text-purple-300">Thinking...</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-[9px] text-slate-500">11:30 AM</div>
+          <span class="bg-purple-600 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full mt-1 inline-block">3</span>
+        </div>
       </div>
-      <div class="border-t border-white/10 pt-3">
-        <h4 class="text-[11px] uppercase tracking-wider text-slate-400 mb-2">Connected Nodes</h4>
-        <ul id="online-users-list" class="space-y-2 text-xs text-slate-300"></ul>
+
+      <!-- User Item: Axel -->
+      <div class="flex items-center justify-between p-2.5 rounded-xl hover:bg-white/5 cursor-pointer transition">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-full bg-blue-600/20 text-blue-300 flex items-center justify-center font-bold text-xs">AX</div>
+          <div>
+            <div class="text-xs font-semibold text-white">Axel</div>
+            <div class="text-[11px] text-slate-500 truncate w-32">Check out this new drone footage!</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-[9px] text-slate-500">11:28 AM</div>
+          <span class="bg-purple-600 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full mt-1 inline-block">2</span>
+        </div>
       </div>
+
+      <!-- User Item: Zara -->
+      <div class="flex items-center justify-between p-2.5 rounded-xl hover:bg-white/5 cursor-pointer transition">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-full bg-pink-600/20 text-pink-300 flex items-center justify-center font-bold text-xs">ZA</div>
+          <div>
+            <div class="text-xs font-semibold text-white">Zara</div>
+            <div class="text-[11px] text-purple-400 italic">typing...</div>
+          </div>
+        </div>
+        <div class="text-[9px] text-slate-500">11:27 AM</div>
+      </div>
+
+      <!-- Item: Cyberpunk Hub -->
+      <div class="flex items-center justify-between p-2.5 rounded-xl hover:bg-white/5 cursor-pointer transition">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-full bg-purple-600/20 text-purple-300 flex items-center justify-center font-bold text-xs">🌆</div>
+          <div>
+            <div class="text-xs font-semibold text-white">Cyberpunk Hub</div>
+            <div class="text-[11px] text-slate-500 truncate w-32"><strong class="text-slate-400">NeonCity_07:</strong> Night drive 🏎️</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-[9px] text-slate-500">11:15 AM</div>
+          <span class="bg-purple-600 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full mt-1 inline-block">12</span>
+        </div>
+      </div>
+
+      <!-- Item: Saved Messages -->
+      <div class="flex items-center justify-between p-2.5 rounded-xl hover:bg-white/5 cursor-pointer transition">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-full bg-cyan-600/20 text-cyan-300 flex items-center justify-center text-xs">🔖</div>
+          <div>
+            <div class="text-xs font-semibold text-white">Saved Messages</div>
+            <div class="text-[11px] text-slate-500 truncate w-32">File: Project_Neural_Link.pdf</div>
+          </div>
+        </div>
+        <div class="text-[9px] text-slate-500">Yesterday</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================== -->
+  <!-- COLUMN 3: MAIN CHAT FEED AREA                            -->
+  <!-- ======================================================== -->
+  <main class="flex-1 bg-[#090a10] flex flex-col justify-between overflow-hidden relative">
+
+    <!-- Top Channel Sub-Header -->
+    <header class="h-14 bg-[#0d0e17] border-b border-white/5 px-4 flex items-center justify-between z-10 flex-shrink-0">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-xs font-bold text-white">
+          #
+        </div>
+        <div>
+          <h2 class="text-sm font-bold text-white flex items-center space-x-2" id="chat-header-title">
+            <span># General</span>
+          </h2>
+          <p class="text-[10px] text-emerald-400 flex items-center space-x-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span id="header-online-status">23 members online</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Header Action Icons -->
+      <div class="flex items-center space-x-3 text-slate-400 text-sm">
+        <button class="hover:text-white transition">🔍</button>
+        <button class="hover:text-white transition">📞</button>
+        <button class="hover:text-white transition">📹</button>
+        <button class="hover:text-white transition">📌</button>
+        <button class="hover:text-white transition">🔔</button>
+        <button id="toggle-profile-col" class="hover:text-white transition">⋮</button>
+      </div>
+    </header>
+
+    <!-- Pinned Message Banner -->
+    <div class="bg-[#151226] border-b border-purple-500/20 px-4 py-2 flex items-center justify-between text-xs text-purple-300 flex-shrink-0">
+      <div class="flex items-center space-x-2">
+        <span>📌</span>
+        <div>
+          <span class="font-bold text-[11px] text-purple-400 block uppercase tracking-wider">Pinned Message</span>
+          <span class="text-slate-300 text-[11px]">Neural Link v2.0 deployed. High-speed quantum responses active.</span>
+        </div>
+      </div>
+      <button class="text-slate-500 hover:text-white">✕</button>
+    </div>
+
+    <!-- Messages Container -->
+    <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scroll flex flex-col">
+      <!-- Dynamic Socket Messages injected here -->
+    </div>
+
+    <!-- Typing Indicator -->
+    <div id="typing-indicator" class="px-5 py-1 text-[11px] text-slate-500 italic h-5 flex-shrink-0"></div>
+
+    <!-- Bottom Capsule Input Bar -->
+    <footer class="p-4 bg-[#090a10] border-t border-white/5 flex-shrink-0">
+      <form id="chat-form" class="flex items-center bg-[#121420] rounded-full border border-white/10 px-4 py-2 space-x-3 shadow-xl focus-within:border-purple-500/50 transition">
+        
+        <button type="button" class="text-slate-400 hover:text-white text-base">📎</button>
+
+        <input 
+          type="text" 
+          id="message-input" 
+          placeholder="Transmit your thoughts..." 
+          autocomplete="off" 
+          class="flex-1 bg-transparent text-xs text-slate-200 placeholder-slate-500 focus:outline-none"
+        >
+
+        <div class="flex items-center space-x-2 text-slate-400 text-sm">
+          <button type="button" id="emoji-btn" class="hover:text-yellow-400 transition">😊</button>
+          <button type="button" id="voice-rec-btn" class="hover:text-cyan-400 transition">🎙️</button>
+        </div>
+
+        <button 
+          type="submit" 
+          class="w-8 h-8 rounded-full bg-[#8b5cf6] hover:bg-[#7c3aed] flex items-center justify-center text-white shadow-lg shadow-purple-600/30 transition flex-shrink-0"
+        >
+          <svg class="w-4 h-4 fill-current transform rotate-90 translate-x-[1px]" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
+        </button>
+      </form>
+    </footer>
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- COLUMN 4: RIGHT USER PROFILE & TELEMETRY PANEL           -->
+  <!-- ======================================================== -->
+  <aside id="right-profile-panel" class="w-72 bg-[#0a0b12] border-l border-white/5 flex-col justify-between hidden xl:flex overflow-y-auto custom-scroll p-4 space-y-5 flex-shrink-0">
+    
+    <div>
+      <!-- Profile Header Avatar -->
+      <div class="text-center pt-2">
+        <div class="relative w-20 h-20 mx-auto mb-3">
+          <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-purple-600 via-indigo-600 to-cyan-400 p-[2px] glow-purple">
+            <div class="w-full h-full bg-[#0d0e17] rounded-full flex items-center justify-center font-extrabold text-xl text-white" id="right-user-avatar">
+              TE
+            </div>
+          </div>
+          <span class="w-3.5 h-3.5 rounded-full bg-emerald-400 absolute bottom-1 right-1 border-2 border-[#0a0b12]"></span>
+        </div>
+        <h3 class="font-bold text-sm text-white" id="right-profile-username">Test6</h3>
+        <p class="text-[11px] text-emerald-400 font-medium">● Neural Link Active</p>
+      </div>
+
+      <!-- Profile Metric Specs -->
+      <div class="mt-5 space-y-2.5 text-xs">
+        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block mb-1">Profile</span>
+        <div class="flex justify-between items-center py-1 border-b border-white/5">
+          <span class="text-slate-400">Neural Status</span>
+          <span class="text-emerald-400 font-medium">Online</span>
+        </div>
+        <div class="flex justify-between items-center py-1 border-b border-white/5">
+          <span class="text-slate-400">Messages Sent</span>
+          <span class="text-slate-200 font-mono">128</span>
+        </div>
+        <div class="flex justify-between items-center py-1 border-b border-white/5">
+          <span class="text-slate-400">AI Sync Score</span>
+          <span class="text-cyan-400 font-mono font-bold">98.4 / 100</span>
+        </div>
+        <div class="flex justify-between items-center py-1 border-b border-white/5">
+          <span class="text-slate-400">Favorite Channel</span>
+          <span class="text-slate-200"># General</span>
+        </div>
+        <div class="flex justify-between items-center py-1 border-b border-white/5">
+          <span class="text-slate-400">Encryption</span>
+          <span class="text-slate-200 font-mono">AES-256</span>
+        </div>
+      </div>
+
+      <!-- Customization Section -->
+      <div class="mt-5 space-y-2.5 text-xs">
+        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block mb-1">Customize</span>
+        
+        <div>
+          <span class="text-slate-400 block mb-1.5 text-[11px]">Accent Theme</span>
+          <div class="flex space-x-2">
+            <span class="w-4 h-4 rounded-full bg-purple-500 ring-2 ring-purple-400 cursor-pointer"></span>
+            <span class="w-4 h-4 rounded-full bg-cyan-400 cursor-pointer"></span>
+            <span class="w-4 h-4 rounded-full bg-emerald-400 cursor-pointer"></span>
+            <span class="w-4 h-4 rounded-full bg-amber-400 cursor-pointer"></span>
+            <span class="w-4 h-4 rounded-full bg-rose-500 cursor-pointer"></span>
+          </div>
+        </div>
+
+        <div class="flex justify-between items-center py-1 border-b border-white/5 pt-2">
+          <span class="text-slate-400">Theme</span>
+          <span class="text-slate-300">Cyberpunk ›</span>
+        </div>
+        <div class="flex justify-between items-center py-1 border-b border-white/5">
+          <span class="text-slate-400">Chat Background</span>
+          <span class="text-slate-300">🌌 ›</span>
+        </div>
+        <div class="flex justify-between items-center py-1 border-b border-white/5">
+          <span class="text-slate-400">Sound Effects</span>
+          <span class="text-purple-400 font-bold">ON</span>
+        </div>
+      </div>
+
+      <!-- Quick Options -->
+      <div class="mt-5 space-y-2 text-xs">
+        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block mb-1">Options</span>
+        <button class="w-full text-left py-1 text-slate-400 hover:text-slate-200 flex items-center space-x-2"><span>✏️</span> <span>Edit Profile</span></button>
+        <button class="w-full text-left py-1 text-slate-400 hover:text-slate-200 flex items-center space-x-2"><span>🔒</span> <span>Privacy & Security</span></button>
+        <button class="w-full text-left py-1 text-slate-400 hover:text-slate-200 flex items-center space-x-2"><span>🔔</span> <span>Notifications</span></button>
+        <button class="w-full text-left py-1 text-slate-400 hover:text-slate-200 flex items-center space-x-2"><span>❓</span> <span>Help & Support</span></button>
+      </div>
+    </div>
+
+    <!-- Log Out -->
+    <div class="pt-4 border-t border-white/5">
+      <button id="logout-btn" class="text-rose-400 hover:text-rose-300 text-xs flex items-center space-x-2 font-semibold">
+        <span>🚪</span> <span>Log Out</span>
+      </button>
     </div>
   </aside>
 
@@ -147,7 +460,7 @@
     }
   </script>
 
-  <!-- Main JavaScript File -->
+  <!-- Client Script -->
   <script src="/script.js"></script>
 </body>
 </html>
