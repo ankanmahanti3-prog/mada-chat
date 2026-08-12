@@ -7,41 +7,39 @@ const chatForm = document.getElementById('chat-form');
 const messageInput = document.getElementById('message-input');
 const typingIndicator = document.getElementById('typing-indicator');
 const headerRoomTitle = document.getElementById('header-room-title');
-const channelButtons = document.querySelectorAll('.channel-btn');
+const channelButtons = document.querySelectorAll('.channel-btn, .room-btn');
 const profileUsername = document.getElementById('profile-username');
 const userAvatar = document.getElementById('user-avatar');
 const onlineUsersList = document.getElementById('online-users-list');
 
 // Drawer Elements
-const openChannelsBtn = document.getElementById('open-channels-btn');
-const closeChannelsBtn = document.getElementById('close-channels-btn');
-const channelsDrawer = document.getElementById('channels-drawer');
-const channelsBackdrop = document.getElementById('channels-drawer-backdrop');
+const openChannelsBtn = document.getElementById('open-channels-btn') || document.getElementById('open-channels');
+const closeChannelsBtn = document.getElementById('close-channels-btn') || document.getElementById('close-channels');
+const channelsDrawer = document.getElementById('channels-drawer') || document.getElementById('channel-drawer');
+const channelsBackdrop = document.getElementById('channels-drawer-backdrop') || document.getElementById('drawer-backdrop');
 
-const openProfileBtn = document.getElementById('open-profile-btn');
-const closeProfileBtn = document.getElementById('close-profile-btn');
+const openProfileBtn = document.getElementById('open-profile-btn') || document.getElementById('open-profile');
+const closeProfileBtn = document.getElementById('close-profile-btn') || document.getElementById('close-profile');
 const profileDrawer = document.getElementById('profile-drawer');
-const profileBackdrop = document.getElementById('profile-drawer-backdrop');
+const profileBackdrop = document.getElementById('profile-drawer-backdrop') || document.getElementById('drawer-backdrop');
 
+// Unified Room & User Management
 let currentRoom = 'General';
-let currentUser = localStorage.getItem('chat_username');
-let typingTimeout = null;
-
-// Auth check
-if (!currentUser) {
-  currentUser = prompt('Enter your callsign / username:') || 'Operator_' + Math.floor(Math.random() * 1000);
-  localStorage.setItem('chat_username', currentUser);
-}
+let currentUser = localStorage.getItem('chat_username') || 'Operator_' + Math.floor(1000 + Math.random() * 9000);
+localStorage.setItem('chat_username', currentUser);
 
 if (profileUsername) profileUsername.innerText = currentUser;
 if (userAvatar) userAvatar.innerText = currentUser.charAt(0).toUpperCase();
 
-// Initialize Socket
-socket.emit('user connected', currentUser);
-socket.emit('join room', currentRoom);
+// Join on connect
+socket.on('connect', () => {
+  socket.emit('user connected', currentUser);
+  socket.emit('join room', currentRoom);
+});
 
-// Drawer Toggle Logic
+// Drawer Functions
 function toggleDrawer(drawer, backdrop, show) {
+  if (!drawer || !backdrop) return;
   if (show) {
     backdrop.classList.remove('hidden');
     drawer.classList.remove('-translate-x-full', 'translate-x-full');
@@ -52,33 +50,37 @@ function toggleDrawer(drawer, backdrop, show) {
   }
 }
 
-openChannelsBtn.addEventListener('click', () => toggleDrawer(channelsDrawer, channelsBackdrop, true));
-closeChannelsBtn.addEventListener('click', () => toggleDrawer(channelsDrawer, channelsBackdrop, false));
-channelsBackdrop.addEventListener('click', () => toggleDrawer(channelsDrawer, channelsBackdrop, false));
+if (openChannelsBtn) openChannelsBtn.addEventListener('click', () => toggleDrawer(channelsDrawer, channelsBackdrop, true));
+if (closeChannelsBtn) closeChannelsBtn.addEventListener('click', () => toggleDrawer(channelsDrawer, channelsBackdrop, false));
+if (channelsBackdrop) channelsBackdrop.addEventListener('click', () => {
+  toggleDrawer(channelsDrawer, channelsBackdrop, false);
+  toggleDrawer(profileDrawer, profileBackdrop, false);
+});
 
-openProfileBtn.addEventListener('click', () => toggleDrawer(profileDrawer, profileBackdrop, true));
-closeProfileBtn.addEventListener('click', () => toggleDrawer(profileDrawer, profileBackdrop, false));
-profileBackdrop.addEventListener('click', () => toggleDrawer(profileDrawer, profileBackdrop, false));
+if (openProfileBtn) openProfileBtn.addEventListener('click', () => toggleDrawer(profileDrawer, profileBackdrop, true));
+if (closeProfileBtn) closeProfileBtn.addEventListener('click', () => toggleDrawer(profileDrawer, profileBackdrop, false));
+if (profileBackdrop && profileBackdrop !== channelsBackdrop) {
+  profileBackdrop.addEventListener('click', () => toggleDrawer(profileDrawer, profileBackdrop, false));
+}
 
 // Channel Switching
 channelButtons.forEach(btn => {
   btn.addEventListener('click', () => {
-    const targetRoom = btn.getAttribute('data-room');
-    if (targetRoom && targetRoom !== currentRoom) {
-      currentRoom = targetRoom;
-      headerRoomTitle.innerText = `# ${currentRoom}`;
-      
-      channelButtons.forEach(b => {
-        b.classList.remove('bg-purple-500/10', 'text-purple-300');
-        b.classList.add('text-slate-400');
-      });
-      btn.classList.add('bg-purple-500/10', 'text-purple-300');
-      btn.classList.remove('text-slate-400');
+    let targetRoom = btn.getAttribute('data-room');
+    if (!targetRoom) return;
+    
+    // Normalize room names
+    if (targetRoom === 'General Matrix') targetRoom = 'General';
 
-      // Clear feed and show empty state
+    if (targetRoom !== currentRoom) {
+      currentRoom = targetRoom;
+      if (headerRoomTitle) headerRoomTitle.innerText = `# ${currentRoom}`;
+      
       messagesContainer.innerHTML = '';
-      messagesContainer.appendChild(emptyState);
-      emptyState.style.display = 'flex';
+      if (emptyState) {
+        messagesContainer.appendChild(emptyState);
+        emptyState.style.display = 'flex';
+      }
 
       socket.emit('join room', currentRoom);
       toggleDrawer(channelsDrawer, channelsBackdrop, false);
@@ -86,37 +88,32 @@ channelButtons.forEach(btn => {
   });
 });
 
-// Transmit Message
+// Submit Message
 chatForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const text = messageInput.value.trim();
-  if (text) {
-    socket.emit('chat message', {
-      room: currentRoom,
-      username: currentUser,
-      message: text
-    });
-    messageInput.value = '';
-    socket.emit('stop typing', { room: currentRoom, username: currentUser });
-  }
-});
+  if (!text) return;
 
-// Typing Events
-messageInput.addEventListener('input', () => {
-  socket.emit('typing', { room: currentRoom, username: currentUser });
-  clearTimeout(typingTimeout);
-  typingTimeout = setTimeout(() => {
-    socket.emit('stop typing', { room: currentRoom, username: currentUser });
-  }, 1500);
+  const msgPayload = {
+    room: currentRoom,
+    username: currentUser,
+    message: text,
+    timestamp: Date.now()
+  };
+
+  // Immediate send
+  socket.emit('chat message', msgPayload);
+  messageInput.value = '';
+  if (typingIndicator) typingIndicator.innerText = '';
 });
 
 // Socket Listeners
 socket.on('chat history', (history) => {
   messagesContainer.innerHTML = '';
   if (history && history.length > 0) {
-    emptyState.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'none';
     history.forEach(msg => appendMessage(msg));
-  } else {
+  } else if (emptyState) {
     messagesContainer.appendChild(emptyState);
     emptyState.style.display = 'flex';
   }
@@ -124,8 +121,11 @@ socket.on('chat history', (history) => {
 });
 
 socket.on('chat message', (msg) => {
-  if (msg.room === currentRoom) {
-    emptyState.style.display = 'none';
+  const normMsgRoom = msg.room === 'General Matrix' ? 'General' : msg.room;
+  const normCurrentRoom = currentRoom === 'General Matrix' ? 'General' : currentRoom;
+  
+  if (normMsgRoom === normCurrentRoom) {
+    if (emptyState) emptyState.style.display = 'none';
     appendMessage(msg);
     scrollToBottom();
   }
@@ -142,19 +142,7 @@ socket.on('online users update', (users) => {
   }
 });
 
-socket.on('user typing', (data) => {
-  if (data.room === currentRoom && data.username !== currentUser) {
-    typingIndicator.innerText = `${data.username} is typing...`;
-  }
-});
-
-socket.on('user stop typing', (data) => {
-  if (data.room === currentRoom) {
-    typingIndicator.innerText = '';
-  }
-});
-
-// Render Message Card
+// Render Message
 function appendMessage(msg) {
   const isMe = msg.username === currentUser;
   const isAI = msg.username === 'Neural AI';
