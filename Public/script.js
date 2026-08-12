@@ -7,37 +7,34 @@ const chatForm = document.getElementById('chat-form');
 const messageInput = document.getElementById('message-input');
 const typingIndicator = document.getElementById('typing-indicator');
 const headerRoomTitle = document.getElementById('header-room-title');
-const channelButtons = document.querySelectorAll('.channel-btn, .room-btn');
+const channelButtons = document.querySelectorAll('.channel-btn');
 const profileUsername = document.getElementById('profile-username');
 const userAvatar = document.getElementById('user-avatar');
 const onlineUsersList = document.getElementById('online-users-list');
 
 // Drawer Elements
-const openChannelsBtn = document.getElementById('open-channels-btn') || document.getElementById('open-channels');
-const closeChannelsBtn = document.getElementById('close-channels-btn') || document.getElementById('close-channels');
-const channelsDrawer = document.getElementById('channels-drawer') || document.getElementById('channel-drawer');
-const channelsBackdrop = document.getElementById('channels-drawer-backdrop') || document.getElementById('drawer-backdrop');
+const openChannelsBtn = document.getElementById('open-channels-btn');
+const closeChannelsBtn = document.getElementById('close-channels-btn');
+const channelsDrawer = document.getElementById('channels-drawer');
+const channelsBackdrop = document.getElementById('channels-drawer-backdrop');
 
-const openProfileBtn = document.getElementById('open-profile-btn') || document.getElementById('open-profile');
-const closeProfileBtn = document.getElementById('close-profile-btn') || document.getElementById('close-profile');
+const openProfileBtn = document.getElementById('open-profile-btn');
+const closeProfileBtn = document.getElementById('close-profile-btn');
 const profileDrawer = document.getElementById('profile-drawer');
-const profileBackdrop = document.getElementById('profile-drawer-backdrop') || document.getElementById('drawer-backdrop');
+const profileBackdrop = document.getElementById('profile-drawer-backdrop');
 
-// Unified Room & User Management
 let currentRoom = 'General';
-let currentUser = localStorage.getItem('chat_username') || 'Operator_' + Math.floor(1000 + Math.random() * 9000);
+let currentUser = localStorage.getItem('chat_username') || 'Ankan';
 localStorage.setItem('chat_username', currentUser);
 
 if (profileUsername) profileUsername.innerText = currentUser;
 if (userAvatar) userAvatar.innerText = currentUser.charAt(0).toUpperCase();
 
-// Join on connect
-socket.on('connect', () => {
-  socket.emit('user connected', currentUser);
-  socket.emit('join room', currentRoom);
-});
+// Connect and join room
+socket.emit('user connected', currentUser);
+socket.emit('join room', currentRoom);
 
-// Drawer Functions
+// Drawer Controls
 function toggleDrawer(drawer, backdrop, show) {
   if (!drawer || !backdrop) return;
   if (show) {
@@ -52,30 +49,27 @@ function toggleDrawer(drawer, backdrop, show) {
 
 if (openChannelsBtn) openChannelsBtn.addEventListener('click', () => toggleDrawer(channelsDrawer, channelsBackdrop, true));
 if (closeChannelsBtn) closeChannelsBtn.addEventListener('click', () => toggleDrawer(channelsDrawer, channelsBackdrop, false));
-if (channelsBackdrop) channelsBackdrop.addEventListener('click', () => {
-  toggleDrawer(channelsDrawer, channelsBackdrop, false);
-  toggleDrawer(profileDrawer, profileBackdrop, false);
-});
+if (channelsBackdrop) channelsBackdrop.addEventListener('click', () => toggleDrawer(channelsDrawer, channelsBackdrop, false));
 
 if (openProfileBtn) openProfileBtn.addEventListener('click', () => toggleDrawer(profileDrawer, profileBackdrop, true));
 if (closeProfileBtn) closeProfileBtn.addEventListener('click', () => toggleDrawer(profileDrawer, profileBackdrop, false));
-if (profileBackdrop && profileBackdrop !== channelsBackdrop) {
-  profileBackdrop.addEventListener('click', () => toggleDrawer(profileDrawer, profileBackdrop, false));
-}
+if (profileBackdrop) profileBackdrop.addEventListener('click', () => toggleDrawer(profileDrawer, profileBackdrop, false));
 
 // Channel Switching
 channelButtons.forEach(btn => {
   btn.addEventListener('click', () => {
-    let targetRoom = btn.getAttribute('data-room');
-    if (!targetRoom) return;
-    
-    // Normalize room names
-    if (targetRoom === 'General Matrix') targetRoom = 'General';
-
-    if (targetRoom !== currentRoom) {
+    const targetRoom = btn.getAttribute('data-room');
+    if (targetRoom && targetRoom !== currentRoom) {
       currentRoom = targetRoom;
       if (headerRoomTitle) headerRoomTitle.innerText = `# ${currentRoom}`;
       
+      channelButtons.forEach(b => {
+        b.classList.remove('bg-purple-500/10', 'text-purple-300');
+        b.classList.add('text-slate-400');
+      });
+      btn.classList.add('bg-purple-500/10', 'text-purple-300');
+      btn.classList.remove('text-slate-400');
+
       messagesContainer.innerHTML = '';
       if (emptyState) {
         messagesContainer.appendChild(emptyState);
@@ -88,7 +82,7 @@ channelButtons.forEach(btn => {
   });
 });
 
-// Submit Message
+// Transmit Message Form
 chatForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const text = messageInput.value.trim();
@@ -97,14 +91,12 @@ chatForm.addEventListener('submit', (e) => {
   const msgPayload = {
     room: currentRoom,
     username: currentUser,
-    message: text,
-    timestamp: Date.now()
+    message: text
   };
 
-  // Immediate send
+  // Send to socket server
   socket.emit('chat message', msgPayload);
   messageInput.value = '';
-  if (typingIndicator) typingIndicator.innerText = '';
 });
 
 // Socket Listeners
@@ -121,10 +113,7 @@ socket.on('chat history', (history) => {
 });
 
 socket.on('chat message', (msg) => {
-  const normMsgRoom = msg.room === 'General Matrix' ? 'General' : msg.room;
-  const normCurrentRoom = currentRoom === 'General Matrix' ? 'General' : currentRoom;
-  
-  if (normMsgRoom === normCurrentRoom) {
+  if (msg.room === currentRoom) {
     if (emptyState) emptyState.style.display = 'none';
     appendMessage(msg);
     scrollToBottom();

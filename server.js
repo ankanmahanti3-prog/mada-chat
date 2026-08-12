@@ -10,13 +10,15 @@ const Groq = require('groq-sdk');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: { origin: "*" }
+});
 
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_cyber_key_2045';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://ankanmahanti3_db_user:SqlQPMCUf8WJAzNm@cluster0.dhopod8.mongodb.net/neurallink?retryWrites=true&w=majority';
 
-// Initialize Groq SDK
+// Initialize Groq AI
 let groq = null;
 if (process.env.GROQ_API_KEY) {
   groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -28,14 +30,8 @@ app.use(express.static(path.join(__dirname, 'Public')));
 
 // MongoDB Connection
 mongoose.connect(MONGODB_URI)
-  .then(() => console.log('⚡ Connected to Permanent Cloud Database (MongoDB Atlas)'))
-  .catch(err => console.error('❌ MongoDB Connection Error:', err));
-
-const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
-});
+  .then(() => console.log('⚡ Connected to MongoDB Atlas'))
+  .catch(err => console.error('❌ MongoDB Connection Warning:', err.message));
 
 const messageSchema = new mongoose.Schema({
   id: { type: Number, required: true },
@@ -46,49 +42,10 @@ const messageSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now }
 });
 
-const User = mongoose.model('User', userSchema);
 const Message = mongoose.model('Message', messageSchema);
-
 let onlineUsers = new Set();
 
-// Auth Routes
-app.post('/api/register', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error: 'Username and password required.' });
-
-    const existingUser = await User.findOne({ username });
-    if (existingUser) return res.status(400).json({ error: 'Username already taken.' });
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ username, password: hashedPassword });
-    await newUser.save();
-
-    res.json({ message: 'User registered successfully!' });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error during registration.' });
-  }
-});
-
-app.post('/api/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error: 'Username and password required.' });
-
-    const user = await User.findOne({ username });
-    if (!user) return res.status(400).json({ error: 'Invalid credentials.' });
-
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) return res.status(400).json({ error: 'Invalid credentials.' });
-
-    const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, username: user.username });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error during login.' });
-  }
-});
-
-// Socket Events
+// Socket.io Real-Time Handlers
 io.on('connection', (socket) => {
   let currentUser = null;
 
@@ -104,7 +61,7 @@ io.on('connection', (socket) => {
       const history = await Message.find({ room }).sort({ timestamp: 1 }).limit(100);
       socket.emit('chat history', history);
     } catch (err) {
-      console.error('Error fetching chat history:', err);
+      console.log('Error fetching history:', err.message);
     }
   });
 
@@ -112,18 +69,32 @@ io.on('connection', (socket) => {
     const { room, username, message, fileUrl } = data;
     const msgId = Date.now();
 
-    const newMsg = new Message({ id: msgId, room, username, message, fileUrl });
+    const newMsgPayload = {
+      id: msgId,
+      room,
+      username,
+      message,
+      fileUrl: fileUrl || null,
+      timestamp: new Date()
+    };
 
+    // 1. Instantly send message to everyone in the room
+    io.to(room).emit('chat message', newMsgPayload);
+
+    // 2. Save in database in background
     try {
-      await newMsg.save();
-      io.to(room).emit('chat message', newMsg);
-
-      if (groq && (message.includes('@AI') || room === 'AI Assistant')) {
-        const cleanPrompt = message.replace('@AI', '').trim();
-        if (cleanPrompt) triggerGroqAI(room, cleanPrompt);
-      }
+      const dbMsg = new Message(newMsgPayload);
+      await dbMsg.save();
     } catch (err) {
-      console.error('Error saving chat message:', err);
+      console.log('Database background save note:', err.message);
+    }
+
+    // 3. Handle AI Assistant trigger
+    if (groq && (message.includes('@AI') || room === 'AI Assistant')) {
+      const cleanPrompt = message.replace('@AI', '').trim();
+      if (cleanPrompt) {
+        triggerGroqAI(room, cleanPrompt);
+      }
     }
   });
 
@@ -147,16 +118,24 @@ async function triggerGroqAI(room, prompt) {
       max_tokens: 500
     });
 
-    const aiText = completion.choices[0]?.message?.content || 'Neural processing completed.';
-    const aiMsg = new Message({ id: Date.now() + 1, room, username: 'Neural AI', message: aiText });
+    const aiText = completion.choices[0]?.message?.content || 'Neural response generated.';
+    const aiMsgPayload = {
+      id: Date.now() + 1,
+      room,
+      username: 'Neural AI',
+      message: aiText,
+      timestamp: new Date()
+    };
 
-    await aiMsg.save();
-    io.to(room).emit('chat message', aiMsg);
+    io.to(room).emit('chat message', aiMsgPayload);
+
+    const dbMsg = new Message(aiMsgPayload);
+    await dbMsg.save();
   } catch (err) {
-    console.error('Groq AI Error:', err);
+    console.error('Groq AI Error:', err.message);
   }
 }
 
 server.listen(PORT, () => {
-  console.log(`🚀 NEURAL LINK v2.0 server running on port ${PORT}`);
+  console.log(`🚀 Neural Link running on port ${PORT}`);
 });
